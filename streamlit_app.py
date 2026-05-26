@@ -705,26 +705,41 @@ elif st.session_state.view == "Home":
     )
 	
     st.divider()
-    st.subheader("🎬 Live-Matrix Steuerung (Shows & Kategorien)")
-    
-    # 1. Auswahl der aktiven Show (Slot)
-    show_options = ["SHOW A", "SHOW B", "SHOW C"]
-    st.session_state.aktive_show = st.radio(
-        "Aktive Show / Zeit-Slot wählen:",
-        show_options,
-        index=show_options.index(st.session_state.get('aktive_show', 'SHOW A')),
-        horizontal=True
-    )
-    
-    # 2. Multiselect für die freigeschalteten Kategorien
-    alle_kategorien = ["1", "2", "3", "4", "5"]
-    st.session_state.aktive_kategorien = st.multiselect(
-        "Freigegebene Kategorien für das Live-System:",
-        alle_kategorien,
-        default=st.session_state.get('aktive_kategorien', alle_kategorien)
-    )
-    
-    st.info(f"💡 Aktuell aktiv: **{st.session_state.aktive_show}** | Erlaubte Kategorien: **{', '.join(st.session_state.aktive_kategorien)}**")
+    # IM ADMIN-BEREICH AUF DER HOME-ANSICHT
+st.markdown("### 🎛️ Zentrale Live-Steuerung")
+
+# 1. Auswahl der aktuell aktiven Bewertung
+show_options = ["BEWERTUNG 1", "BEWERTUNG 2", "BEWERTUNG 3"]
+aktive_show = st.radio(
+    "Welche Bewertung soll JETZT live geschaltet werden?", 
+    show_options, 
+    key="admin_aktive_show"
+)
+st.session_state['aktive_show'] = aktive_show
+
+# 2. Dynamische Kategorie-Auswahl PRO SHOW
+st.markdown(f"**Verfügbare Kategorien für {aktive_show} freigeben:**")
+
+# Wir erstellen für jede der 5 Kategorien eine Checkbox
+col1, col2, col3, col4, col5 = st.columns(5)
+with col1: kat1 = st.checkbox("Kat 1", value=True, key=f"check_{aktive_show}_1")
+with col2: kat2 = st.checkbox("Kat 2", value=True, key=f"check_{aktive_show}_2")
+with col3: kat3 = st.checkbox("Kat 3", value=True, key=f"check_{aktive_show}_3")
+with col4: kat4 = st.checkbox("Kat 4", value=True, key=f"check_{aktive_show}_4")
+with col5: kat5 = st.checkbox("Kat 5", value=True, key=f"check_{aktive_show}_5")
+
+# Speichert die ausgewählten Kategorien exakt für die gerade aktive Show ab
+gewaehlte_kats = []
+if kat1: gewaehlte_kats.append("1")
+if kat2: gewaehlte_kats.append("2")
+if kat3: gewaehlte_kats.append("3")
+if kat4: gewaehlte_kats.append("4")
+if kat5: gewaehlte_kats.append("5")
+
+st.session_state['aktive_kategorien'] = gewaehlte_kats
+
+st.success(f"📡 Live geschaltet: **{aktive_show}** mit den Kategorien: **{', '.join(gewaehlte_kats)}**")
+
 
 # BIS ADMIN CONTROL
 elif st.session_state.view == "BIS_Admin_Control":
