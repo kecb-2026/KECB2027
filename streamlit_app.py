@@ -1003,8 +1003,7 @@ elif st.session_state.view == "Dashboard":
                         
     st_autorefresh(interval=10000, key="dash_refresh")
 
-# --- CORRECTIONS ONLY IN THE STEWARD PANEL ---
-# --- CORRECTIONS ONLY IN THE STEWARD PANEL ---
+# --- CORRECTIONS ONLY IN THE STEWARD PANEL ---# --- CORRECTIONS ONLY IN THE STEWARD PANEL ---
 elif st.session_state.view == "Steward_Panel":
     display_header_with_logo("📝 Steward-Pult")
     df_full = load_labels()
@@ -1013,23 +1012,50 @@ elif st.session_state.view == "Steward_Panel":
         # 1. Prüfen, ob ein Richter via QR-Code übergeben wurde
         url_judge_name = st.session_state.get("url_judge", "--")
         
-        # 2. Automatisch ermitteln, an welchem Tag dieser Richter arbeitet
+        # 2. Automatisch ermitteln, in welcher Show dieser Richter arbeitet (Übersetzung von alten Parametern)
         url_day = st.query_params.get("day", "1")
-        default_tag_idx = 1 if url_day == "2" else 0
+        if url_day == "2":
+            default_show_idx = 1  # Show B
+        elif url_day == "3":
+            default_show_idx = 2  # Show C
+        else:
+            default_show_idx = 0  # Show A
         
+        # KORREKTUR: Wenn der Richter via URL kommt, prüfen wir, in welcher neuen Richter-Spalte er eingetragen ist
         if url_judge_name != "--":
-            # Wenn der Richter nicht in Tag 1, aber in Tag 2 existiert -> Umschalten auf Tag 2
-            j_t1 = [r for r in df_full['RICHTER TAG 1'].unique() if str(r) != "nan"] if 'RICHTER TAG 1' in df_full.columns else []
-            j_t2 = [r for r in df_full['RICHTER TAG 2'].unique() if str(r) != "nan"] if 'RICHTER TAG 2' in df_full.columns else []
+            j_a = [r for r in df_full['RICHTER SHOW A'].unique() if str(r) != "nan" and str(r).strip() != ""] if 'RICHTER SHOW A' in df_full.columns else []
+            j_b = [r for r in df_full['RICHTER SHOW B'].unique() if str(r) != "nan" and str(r).strip() != ""] if 'RICHTER SHOW B' in df_full.columns else []
+            j_c = [r for r in df_full['RICHTER SHOW C'].unique() if str(r) != "nan" and str(r).strip() != ""] if 'RICHTER SHOW C' in df_full.columns else []
             
-            if url_judge_name in j_t2 and url_judge_name not in j_t1:
-                default_tag_idx = 1 # Setzt den Radio-Button auf "Tag 2"
+            if url_judge_name in j_a:
+                default_show_idx = 0
+            elif url_judge_name in j_b:
+                default_show_idx = 1
+            elif url_judge_name in j_c:
+                default_show_idx = 2
         
-        # Sidebar Radio-Button mit dem dynamischen Default-Index
-        tag = st.sidebar.radio("Tag:", ["Tag 1", "Tag 2"], index=default_tag_idx).upper()
+        # KORREKTUR: Sidebar Radio-Button auf Shows umgestellt
+        tag = st.sidebar.radio("Show auswählen:", ["Show A", "Show B", "Show C"], index=default_show_idx)
         
-        r_col = f"RICHTER {tag}"
-        all_j = sorted([r for r in df_full[df_full[tag].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
+        # KORREKTUR: Spaltenmapping für die ausgewählte Show (Großbuchstaben wegen load_labels)
+        show_mapping = {
+            "SHOW A": {"filter_spalte": "SHOW A", "richter_spalte": "RICHTER SHOW A", "admin_key": "BEWERTUNG 1"},
+            "SHOW B": {"filter_spalte": "SHOW B", "richter_spalte": "RICHTER SHOW B", "admin_key": "BEWERTUNG 2"},
+            "SHOW C": {"filter_spalte": "SHOW C", "richter_spalte": "RICHTER SHOW C", "admin_key": "BEWERTUNG 3"}
+        }
+        
+        show_key = tag.upper() # Macht aus "Show A" -> "SHOW A"
+        config = show_mapping.get(show_key, show_mapping["SHOW A"])
+        
+        teilnahme_spalte = config["filter_spalte"]
+        r_col = config["richter_spalte"]
+        admin_show_key = config["admin_key"]
+        
+        # Holt alle Richter, die für DIESE gewählte Show ein 'X' und einen gültigen Namen haben
+        if teilnahme_spalte in df_full.columns and r_col in df_full.columns:
+            all_j = sorted([r for r in df_full[df_full[teilnahme_spalte].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
+        else:
+            all_j = []
         
         # Berechnen des Default-Index für die Richter-Selectbox
         default_idx = 0
@@ -1039,25 +1065,23 @@ elif st.session_state.view == "Steward_Panel":
         mein_richter = st.selectbox("Richter wählen:", ["--"] + all_j, index=default_idx)
 
         if mein_richter != "--":
-            # Filtern nach Tag und gewähltem Richter
-            df_richter_alle = df_full[(df_full[tag].astype(str).str.upper() == 'X') & (df_full[r_col] == mein_richter)]
+            # KORREKTUR: Filtern nach korrekter Show-Teilnahme und gewähltem Show-Richter
+            df_richter_alle = df_full[(df_full[teilnahme_spalte].astype(str).str.upper() == 'X') & (df_full[r_col] == mein_richter)]
             
-            # --- NEUE LOGIK: FILTERN NACH ADMIN-FREIGABE ---
-            # Holt die im Admin-Bereich aktiv geschaltete Bewertung (Fallback auf BEWERTUNG 1)
-            aktive_show = st.session_state.get('aktive_show', 'BEWERTUNG 1')
-            # Holt die freigegebenen Kategorien für diese Bewertung (Fallback auf alle 1-5)
+            # --- FILTERN NACH ADMIN-FREIGABE ---
+            # Holt die freigegebenen Kategorien für genau diese Show aus der Admin-Konfiguration
             allowed_categories = st.session_state.get('show_kategorien_config', {}).get(
-                aktive_show, ["1", "2", "3", "4", "5"]
+                admin_show_key, ["1", "2", "3", "4", "5"]
             )
             
-            # Erstellt die Auswahlliste der Kategorien basierend auf der Spalte 'KATEGORIE' (Großbuchstaben)
+            # Erstellt die Auswahlliste der Kategorien basierend auf der Spalte 'KATEGORIE'
             all_cats_for_judge = [str(cat).replace('.0', '').strip() for cat in df_richter_alle['KATEGORIE'].unique() if pd.notna(cat)]
             
             # Behält NUR Kategorien, die vom Admin JETZT freigegeben sind
             verfuegbare_kategorien = sorted([cat for cat in all_cats_for_judge if cat in allowed_categories])
             
             if not verfuegbare_kategorien:
-                st.warning(f"Information: Für **{mein_richter}** sind in der aktuellen Show (**{aktive_show}**) momentan keine Kategorien freigeschaltet.")
+                st.warning(f"Information: Für **{mein_richter}** sind in der aktuellen Show (**{tag}**) momentan keine Kategorien freigeschaltet.")
             else:
                 meine_kategorie = st.selectbox("Kategorie wählen:", verfuegbare_kategorien)
                 
