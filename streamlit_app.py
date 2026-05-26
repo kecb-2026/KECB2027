@@ -710,7 +710,7 @@ elif st.session_state.view == "Home":
 # IM ADMIN-BEREICH AUF DER HOME-ANSICHT
 st.markdown("### 🎛️ Zentrale Live-Steuerung")
 
-# 1. Auswahl der aktuell aktiven Bewertung für das Dashboard / Stewardpult
+# 1. Auswahl der aktuell aktiven Bewertung
 show_options = ["BEWERTUNG 1", "BEWERTUNG 2", "BEWERTUNG 3"]
 aktive_show = st.radio(
     "Welche Bewertung soll JETZT live auf den Bildschirmen geschaltet werden?", 
@@ -719,7 +719,7 @@ aktive_show = st.radio(
 )
 st.session_state['aktive_show'] = aktive_show
 
-# Initialisiere die Speicherstrukturen im Session State, falls noch nicht geschehen
+# Initialisiere die Konfiguration im Session State, falls noch nicht vorhanden
 if 'show_kategorien_config' not in st.session_state:
     st.session_state['show_kategorien_config'] = {
         "BEWERTUNG 1": ["1", "2", "3", "4", "5"],
@@ -727,19 +727,25 @@ if 'show_kategorien_config' not in st.session_state:
         "BEWERTUNG 3": ["1", "2", "3", "4", "5"]
     }
 
-st.markdown(f"**Verfügbare Kategorien für {aktive_show} konfigurieren:**")
+st.markdown(f"**Verfügbare Kategorien für {aktive_show} freigeben:**")
 
-# Checkboxen anzeigen. Als Startwert (value) nehmen wir das, was aktuell für DIESE Show gespeichert ist
+# Holt die aktuell gespeicherten Kategorien für DIESE gewählte Show
 current_saved_kats = st.session_state['show_kategorien_config'][aktive_show]
 
+# Hier ist die korrekte Python-Syntax (eingerückt unter dem with)
 col1, col2, col3, col4, col5 = st.columns(5)
-with col1: kat1 = st.checkbox("Kat 1", value=("1" in current_saved_kats), key=f"chk_{aktive_show}_1")
-with col2: kat2 = st.checkbox("Kat 2", value=("2" in current_saved_kats), key=f"chk_{aktive_show}_2")
-with col3: kat3 = st.checkbox("Kat 3", value=("3" in current_saved_kats), key=f"chk_{aktive_show}_3")
-with col4: kat4 = st.checkbox("Kat 4", value=("4" in current_saved_kats), key=f"chk_{aktive_show}_4")
-with col5: kat5 = st.checkbox("Kat 5", value=("5" in current_saved_kats), key=f"chk_{aktive_show}_5")
+with col1: 
+    kat1 = st.checkbox("Kat 1", value=("1" in current_saved_kats), key=f"chk_{aktive_show}_1")
+with col2: 
+    kat2 = st.checkbox("Kat 2", value=("2" in current_saved_kats), key=f"chk_{aktive_show}_2")
+with col3: 
+    kat3 = st.checkbox("Kat 3", value=("3" in current_saved_kats), key=f"chk_{aktive_show}_3")
+with col4: 
+    kat4 = st.checkbox("Kat 4", value=("4" in current_saved_kats), key=f"chk_{aktive_show}_4")
+with col5: 
+    kat5 = st.checkbox("Kat 5", value=("5" in current_saved_kats), key=f"chk_{aktive_show}_5")
 
-# Die aktuelle Auswahl für diese spezifische Show wieder zurückspeichern
+# Die getroffene Auswahl wieder passgenau für diese Show abspeichern
 updated_kats = []
 if kat1: updated_kats.append("1")
 if kat2: updated_kats.append("2")
@@ -749,9 +755,8 @@ if kat5: updated_kats.append("5")
 
 st.session_state['show_kategorien_config'][aktive_show] = updated_kats
 
-# Info für den Admin
-aktivierte_kats_text = ", ".join(updated_kats) if updated_kats else "Keine"
-st.success(f"📡 Konfiguration aktiv: **{aktive_show}** zeigt Kategorien: **{aktivierte_kats_text}**")
+# Statusmeldung für dich
+st.success(f"📡 Modus aktiv: **{aktive_show}** zeigt Kategorien: **{', '.join(updated_kats) if updated_kats else 'Keine'}**")
 
 # BIS ADMIN CONTROL
 elif st.session_state.view == "BIS_Admin_Control":
