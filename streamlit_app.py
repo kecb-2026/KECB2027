@@ -1472,6 +1472,13 @@ elif st.session_state.view == "Nominated_Cats":
         # Mapping der Spalten
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
         ziel_spalte = spalten_map[show_wahl]
+  
+ 		# Mapping der Richter-Spalte (Wichtig: Prüfe, ob dies mit deinem Excel übereinstimmt!)
+        # Falls deine Spalten im Excel "RICHTER SHOW A" heißen, dann nimm diese Zeile:
+        richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
+        richter_col = richter_map[show_wahl]
+
+	
         
         # Filterung auf die gewählte Spalte
         df_nominierte = df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'].copy()
