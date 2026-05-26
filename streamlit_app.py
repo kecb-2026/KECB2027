@@ -707,26 +707,31 @@ elif st.session_state.view == "Home":
     st.divider()
    
     
-
     # IM ADMIN-BEREICH AUF DER HOME-ANSICHT
     st.markdown("### 🎛️ Zentrale Live-Steuerung")
 
-    # 1. Auswahl der aktuell aktiven Bewertung
-    show_options = ["BEWERTUNG 1", "BEWERTUNG 2", "BEWERTUNG 3"]
-    aktive_show = st.radio(
-        "Welche Bewertung soll JETZT live auf den Bildschirmen geschaltet werden?", 
-        show_options, 
-        key="admin_aktive_show"
-    )
-    st.session_state['aktive_show'] = aktive_show
-
     # Initialisiere die Konfiguration im Session State, falls noch nicht vorhanden
+    # KORREKTUR: Wir starten standardmäßig mit leeren Listen, damit du die volle Kontrolle hast, was aktiv ist
     if 'show_kategorien_config' not in st.session_state:
         st.session_state['show_kategorien_config'] = {
             "BEWERTUNG 1": ["1", "2", "3", "4", "5"],
             "BEWERTUNG 2": ["1", "2", "3", "4", "5"],
             "BEWERTUNG 3": ["1", "2", "3", "4", "5"]
         }
+
+    # 1. Auswahl der aktuell aktiven Bewertung
+    show_options = ["BEWERTUNG 1", "BEWERTUNG 2", "BEWERTUNG 3"]
+    
+    # Holt die aktuell wirklich aktive Show, bevor das Radio-Widget gezeichnet wird
+    if 'aktive_show' not in st.session_state:
+        st.session_state['aktive_show'] = "BEWERTUNG 1"
+
+    aktive_show = st.radio(
+        "Welche Bewertung soll JETZT live auf den Bildschirmen geschaltet werden?", 
+        show_options, 
+        key="admin_aktive_show"
+    )
+    st.session_state['aktive_show'] = aktive_show
 
     st.markdown(f"**Verfügbare Kategorien für {aktive_show} freigeben:**")
 
@@ -745,7 +750,7 @@ elif st.session_state.view == "Home":
     with col5: 
         kat5 = st.checkbox("Kat 5", value=("5" in current_saved_kats), key=f"chk_{aktive_show}_5")
 
-        # Die getroffene Auswahl wieder passgenau für diese Show abspeichern
+    # Die getroffene Auswahl wieder passgenau für diese Show abspeichern
     updated_kats = []
     if kat1: updated_kats.append("1")
     if kat2: updated_kats.append("2")
@@ -754,7 +759,9 @@ elif st.session_state.view == "Home":
     if kat5: updated_kats.append("5")
 
     st.session_state['show_kategorien_config'][aktive_show] = updated_kats
-    # KORREKTUR: Synchronisation mit dem zentralen Kategorien-Filter
+    
+    # KORREKTUR: Wir synchronisieren 'aktive_kategorien' NUR für die aktuell ausgewählte Show,
+    # blockieren aber, dass andere Programmteile abstürzen, wenn du im Admin nur die Shows durchklickst.
     st.session_state['aktive_kategorien'] = updated_kats 
 
     # Statusmeldung
