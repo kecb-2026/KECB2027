@@ -329,12 +329,18 @@ store = get_store()
 # --- 3. SESSION STATE & URL PARAMETER (FIXED: DAUERHAFT EINGELOGGT) ---
 q_params = st.query_params
 
+# NEU: Slot-Parameter aus QR-Codes direkt beim App-Start abfangen
+if "slot" in q_params:
+    slot_param = str(q_params["slot"]).strip().upper()
+    if slot_param in ["SHOW A", "SHOW B", "SHOW C"]:
+        st.session_state.aktive_show = slot_param
+
 # 1. Prüfen, ob Zugangsdaten direkt in der URL stecken (Erzwingt das Login bei jedem Rerun)
 if "auth" in q_params and q_params["auth"] == "true":
     st.session_state.authenticated = True
     st.session_state.user_role = q_params.get("role", "Public")
     
-       # Falls eine bestimmte Ansicht in der URL steht, diese erzwingen
+    # Falls eine bestimmte Ansicht in der URL steht, diese erzwingen
     if "view" in q_params:
         v_param = q_params["view"].lower()
         if v_param == "steward": st.session_state.view = "Steward_Panel"
@@ -344,8 +350,6 @@ if "auth" in q_params and q_params["auth"] == "true":
         elif v_param == "qr": st.session_state.view = "QR_Codes"
         elif v_param == "nominated": st.session_state.view = "Nominated_Cats"
 
-
-
 # 2. Standard-Fallbacks, falls nichts in der URL steht
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
@@ -353,6 +357,12 @@ if "user_role" not in st.session_state:
     st.session_state.user_role = "Public"
 if "view" not in st.session_state:
     st.session_state.view = "Dashboard"
+
+# NEU: Globale Fallbacks für die neue Matrix-Struktur
+if "aktive_show" not in st.session_state:
+    st.session_state.aktive_show = "SHOW A"
+if "aktive_kategorien" not in st.session_state:
+    st.session_state.aktive_kategorien = ["1", "2", "3", "4", "5"]
 
 # Falls man manuell über das Menü navigiert, ohne URL-Parameter zu verlieren
 if "view" in q_params and not st.session_state.authenticated:
@@ -362,9 +372,8 @@ if "view" in q_params and not st.session_state.authenticated:
     elif v_param in ["admin", "steward", "richter", "bis-admin"]:
         st.session_state.view = "Login"
         st.session_state.target_role = v_param
-        
 
-# NEU: Richter-Parameter aus der URL sichern, falls übergeben
+# Richter-Parameter aus der URL sichern, falls übergeben
 if "judge" in q_params: 
     st.session_state.url_judge = q_params["judge"]
 elif "url_judge" not in st.session_state: 
