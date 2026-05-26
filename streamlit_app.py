@@ -694,6 +694,28 @@ elif st.session_state.view == "Home":
         "Haupt-Navigation für Stewards/Richter anzeigen", 
         value=st.session_state.show_nav
     )
+	
+    st.divider()
+    st.subheader("🎬 Live-Matrix Steuerung (Shows & Kategorien)")
+    
+    # 1. Auswahl der aktiven Show (Slot)
+    show_options = ["SHOW A", "SHOW B", "SHOW C"]
+    st.session_state.aktive_show = st.radio(
+        "Aktive Show / Zeit-Slot wählen:",
+        show_options,
+        index=show_options.index(st.session_state.get('aktive_show', 'SHOW A')),
+        horizontal=True
+    )
+    
+    # 2. Multiselect für die freigeschalteten Kategorien
+    alle_kategorien = ["1", "2", "3", "4", "5"]
+    st.session_state.aktive_kategorien = st.multiselect(
+        "Freigegebene Kategorien für das Live-System:",
+        alle_kategorien,
+        default=st.session_state.get('aktive_kategorien', alle_kategorien)
+    )
+    
+    st.info(f"💡 Aktuell aktiv: **{st.session_state.aktive_show}** | Erlaubte Kategorien: **{', '.join(st.session_state.aktive_kategorien)}**")
 
 # BIS ADMIN CONTROL
 elif st.session_state.view == "BIS_Admin_Control":
