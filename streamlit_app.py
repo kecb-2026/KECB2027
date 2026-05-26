@@ -925,29 +925,43 @@ elif st.session_state.view == "BIS_Public":
 elif st.session_state.view == "Dashboard":
     display_header_with_logo("📢 Live-Aufruf & Status")
     
-    # Holt die im Admin-Bereich aktiv geschaltete Bewertung (Fallback auf BEWERTUNG 1)
-    aktive_show = st.session_state.get('aktive_show', 'BEWERTUNG 1')
+    # 1. AUSWAHLSCHALTER IN DER SIDEBAR (Exakt wie vorher, nur mit den neuen Shows)
+    tag = st.sidebar.radio("Show auswählen:", ["Show A", "Show B", "Show C"])
     
-    # Holt die freigegebenen Kategorien für diese Bewertung (z. B. ['1', '2'])
-    # Fallback auf alle Kategorien, falls im Admin noch nichts initialisiert wurde
+    # Internes Mapping auf deine echten Excel-Spaltennamen & Admin-Kategorien
+    show_mapping = {
+        "Show A": {"filter_spalte": "SHOW A", "richter_spalte": "RICHTER SHOW A", "admin_key": "BEWERTUNG 1"},
+        "Show B": {"filter_spalte": "SHOW B", "richter_spalte": "RICHTER SHOW B", "admin_key": "BEWERTUNG 2"},
+        "Show C": {"filter_spalte": "SHOW C", "richter_spalte": "RICHTER SHOW C", "admin_key": "BEWERTUNG 3"}
+    }
+    
+    config = show_mapping[tag]
+    teilnahme_spalte = config["filter_spalte"]
+    r_col = config["richter_spalte"]
+    admin_show_key = config["admin_key"]
+    
+    # Holt die freigegebenen Kategorien für diese Bewertung aus der Admin-Konfiguration
     allowed_categories = st.session_state.get('show_kategorien_config', {}).get(
-        aktive_show, ["1", "2", "3", "4", "5"]
+        admin_show_key, ["1", "2", "3", "4", "5"]
     )
     
-    tag = st.sidebar.radio("Tag:", ["Tag 1", "Tag 2"]).upper()
     df_full = load_labels()
     
     if df_full is not None:
-        r_col = f"RICHTER {tag}"
+        # 1. Filtern nach Teilnahme in der ausgewählten Show (A, B oder C)
+        if teilnahme_spalte in df_full.columns:
+            df_tag = df_full[df_full[teilnahme_spalte].astype(str).str.upper() == 'X'].copy()
+        else:
+            df_tag = pd.DataFrame(columns=df_full.columns)
         
-        # 1. Filtern nach Tag (Tag 1 oder Tag 2)
-        df_tag = df_full[df_full[tag].astype(str).str.upper() == 'X'].copy()
-        
-        # NEU: Filtern nach den im Admin-Bereich freigegebenen Kategorien
-        # .astype(str) stellt sicher, dass z.B. die Zahl 1 mit dem String "1" matcht
+        # 2. Filtern nach den im Admin-Bereich freigegebenen Kategorien
         df_tag = df_tag[df_tag['KATEGORIE'].astype(str).isin(allowed_categories)]
         
-        judges = sorted([r for r in df_tag[r_col].unique() if str(r) != "nan"])
+        # Holt die Richter aus der korrekten, zur Show passenden Spalte
+        if r_col in df_tag.columns:
+            judges = sorted([r for r in df_tag[r_col].unique() if str(r).strip() != ""])
+        else:
+            judges = []
         
         if judges:
             cols = st.columns(len(judges))
@@ -972,7 +986,7 @@ elif st.session_state.view == "Dashboard":
                         kat_nr = entry["key"].split("|")[0]
                         flags = entry["data"].get("flags", {})
                         
-                        # Findet die Katze im bereits nach Kategorien gefilterten Datensatz
+                        # Findet die Katze im bereits gefilterten Datensatz
                         m = df_tag[df_tag['KAT_STR'] == kat_nr]
                         if not m.empty:
                             tags = "".join([f"<span class='tag tag-{t.lower().replace(' ', '')}'>{t}</span> " for t, val in flags.items() if val and t != "Gerichtet"])
@@ -984,9 +998,10 @@ elif st.session_state.view == "Dashboard":
                                         <div class='tag-container'>{tags}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
+        else:
+            st.info("Aktuell keine aktiven Richter oder keine Katzen für diese Auswahl aufgerufen.")
                         
     st_autorefresh(interval=10000, key="dash_refresh")
-
 
 # --- CORRECTIONS ONLY IN THE STEWARD PANEL ---
 # --- CORRECTIONS ONLY IN THE STEWARD PANEL ---
