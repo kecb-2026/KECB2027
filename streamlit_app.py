@@ -1356,8 +1356,8 @@ elif st.session_state.view == "QR_Codes":
             st.image(generate_qr_image(adm_url), width=230)
             st.caption(f"[Link kopieren]({adm_url})")
             
-    # Helfer zum Rendern der Web-Inhalte für Show A, B, C
-    def render_web_show_tabs(tab_obj, show_col, r_col, param_val, label_text):
+    # Helfer zum Rendern der Web-Inhalte (4 Parameter statt 5)
+    def render_web_show_tabs(tab_obj, show_col, r_col, param_val):
         with tab_obj:
             if df_full is not None:
                 if r_col in df_full.columns and show_col in df_full.columns:
@@ -1365,7 +1365,7 @@ elif st.session_state.view == "QR_Codes":
                     judges = sorted([r for r in df_show[r_col].unique() if str(r) != "nan"])
                     
                     if judges:
-                        st.markdown(f"### 📝 Steward-Links für {label_text}")
+                        st.markdown(f"### 📝 Steward-Links")
                         s_cols = st.columns(3)
                         for idx, judge in enumerate(judges):
                             with s_cols[idx % 3]:
@@ -1374,7 +1374,7 @@ elif st.session_state.view == "QR_Codes":
                                 st.image(generate_qr_image(stew_url), width=200)
                                 st.write("---")
                                 
-                        st.markdown(f"### 👨‍⚖️ Richter-Direkt-Links für {label_text}")
+                        st.markdown(f"### 👨‍⚖️ Richter-Direkt-Links")
                         j_cols = st.columns(3)
                         for idx, judge in enumerate(judges):
                             with j_cols[idx % 3]:
@@ -1383,14 +1383,14 @@ elif st.session_state.view == "QR_Codes":
                                 st.image(generate_qr_image(j_url), width=200)
                                 st.write("---")
                     else:
-                        st.info(f"Keine aktiven Richter für {label_text} eingetragen.")
+                        st.info(f"Keine aktiven Richter eingetragen.")
                 else:
-                    st.info(f"Hinweis: Die Spalten für **{label_text}** ('{show_col}' / '{r_col}') sind in der aktuellen Excel-Datei nicht vorhanden.")
+                    st.info(f"Hinweis: Die Spalten ('{show_col}' / '{r_col}') sind in der aktuellen Excel-Datei nicht vorhanden.")
 
     # ---------------- TABS FÜR SHOW A, B, C GENERIEREN ----------------
-    render_web_show_tabs(tab_show_a, "Richter Show 1", "A", "Show A")
-    render_web_show_tabs(tab_show_b, "Richter Show 2", "B", "Show B")
-    render_web_show_tabs(tab_show_c, "Richter Show 3", "C", "Show C")
+    render_web_show_tabs(tab_show_a, "SHOW A", "Richter Show 1", "A")
+    render_web_show_tabs(tab_show_b, "SHOW B", "Richter Show 2", "B")
+    render_web_show_tabs(tab_show_c, "SHOW C", "Richter Show 3", "C")
                 
     # --- ZURÜCK NAVI ---
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
