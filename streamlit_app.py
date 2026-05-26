@@ -1472,11 +1472,11 @@ elif st.session_state.view == "Nominated_Cats":
             key="nom_show_selector"
         )
         
-        # Mapping der Spalten laut deiner Liste
+        # Mapping der Spalten
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
         ziel_spalte = spalten_map[show_wahl]
         
-        # Mapping der Richter-Spalten laut deiner Liste
+        # Mapping der Richter-Spalten
         richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
         ziel_richter_col = richter_map[show_wahl]
         
@@ -1488,11 +1488,9 @@ elif st.session_state.view == "Nominated_Cats":
             
             for _, row in df_nominierte.iterrows():
                 kat_nr = row.get('KAT_STR', str(row.get('KATALOG-NR', ''))).replace('.0', '')
-                
-                # Exakte Spalte aus dem Mapping verwenden
                 richter_name = row.get(ziel_richter_col, '-')
                 
-                klasse = row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', '-')))
+                klasse = str(row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', '-')))).replace('.0', '')
                 
                 geb_datum = row.get('GEBURTSDATUM', '-')
                 if isinstance(geb_datum, pd.Timestamp): 
