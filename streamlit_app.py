@@ -1264,61 +1264,62 @@ elif st.session_state.view == "QR_Codes":
                 judges = sorted([r for r in df_show[r_col].unique() if str(r) != "nan"])
                 
                 for judge in judges:
-                    # Stewards
+                    # Stewards Link
                     stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&show={param_val}"
                     all_qr_items.append((f"Steward fuer: {judge} ({label_text})", stew_url, f"2. Steward-Links für {label_text}"))
                     
-                    # Richter (KORRIGIERT: role=Judge statt role=Richter)
+                    # Richter Link (Hier mit role=Judge)
                     j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
                     all_qr_items.append((f"Richter: {judge} ({label_text})", j_url, f"3. Richter-Direkt-Links für {label_text}"))
         
         # --- Grid im PDF generieren ---
-        unique_sections = list(dict.fromkeys([item[2] for item in all_qr_items]))
-        for current_section in unique_sections:
-            story.append(Paragraph(current_section, section_style))
-            story.append(Spacer(1, 4))
-            
-            section_items = [item for item in all_qr_items if item[2] == current_section]
-            cells = []
-            
-            for label, url, _ in section_items:
-                qr = qrcode.QRCode(version=1, box_size=4, border=1)
-                qr.add_data(url)
-                qr.make(fit=True)
-                img_pil = qr.make_image(fill_color="black", back_color="white")
+        if all_qr_items:
+            unique_sections = list(dict.fromkeys([item[2] for item in all_qr_items]))
+            for current_section in unique_sections:
+                story.append(Paragraph(current_section, section_style))
+                story.append(Spacer(1, 4))
                 
-                img_buf = BytesIO()
-                img_pil.save(img_buf, format="PNG")
-                img_buf.seek(0)
+                section_items = [item for item in all_qr_items if item[2] == current_section]
+                cells = []
                 
-                rl_img = Image(img_buf, width=90, height=90)
+                for label, url, _ in section_items:
+                    qr = qrcode.QRCode(version=1, box_size=4, border=1)
+                    qr.add_data(url)
+                    qr.make(fit=True)
+                    img_pil = qr.make_image(fill_color="black", back_color="white")
+                    
+                    img_buf = BytesIO()
+                    img_pil.save(img_buf, format="PNG")
+                    img_buf.seek(0)
+                    
+                    rl_img = Image(img_buf, width=90, height=90)
+                    
+                    cell_content = [
+                        Paragraph(f"<b>{label}</b>", label_style),
+                        Spacer(1, 3),
+                        rl_img,
+                        Spacer(1, 10)
+                    ]
+                    cells.append(cell_content)
                 
-                cell_content = [
-                    Paragraph(f"<b>{label}</b>", label_style),
-                    Spacer(1, 3),
-                    rl_img,
-                    Spacer(1, 10)
-                ]
-                cells.append(cell_content)
-            
-            grid_data = []
-            row = []
-            for i, cell in enumerate(cells):
-                row.append(cell)
-                if (i + 1) % 3 == 0 or (i + 1) == len(cells):
-                    while len(row) < 3:
-                        row.append(Paragraph("", label_style))
-                    grid_data.append(row)
-                    row = []
-            
-            if grid_data:
-                table_grid = Table(grid_data, colWidths=[180, 180, 180])
-                table_grid.setStyle(TableStyle([
-                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                    ('VALIGN', (0,0), (-1,-1), 'TOP'),
-                ]))
-                story.append(table_grid)
-                story.append(Spacer(1, 5))
+                grid_data = []
+                row = []
+                for i, cell in enumerate(cells):
+                    row.append(cell)
+                    if (i + 1) % 3 == 0 or (i + 1) == len(cells):
+                        while len(row) < 3:
+                            row.append(Paragraph("", label_style))
+                        grid_data.append(row)
+                        row = []
+                
+                if grid_data:
+                    table_grid = Table(grid_data, colWidths=[180, 180, 180])
+                    table_grid.setStyle(TableStyle([
+                        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                    ]))
+                    story.append(table_grid)
+                    story.append(Spacer(1, 5))
 
         doc.build(story)
         pdf_buffer.seek(0)
@@ -1331,7 +1332,7 @@ elif st.session_state.view == "QR_Codes":
         st.download_button(
             label="📄 ALLE QR-Codes (Admins, Stewards & Richter) als PDF herunterladen",
             data=pdf_data,
-            file_name="Alle_QR_Codes_Burgdorf_2026.pdf",
+            file_name="Alle_QR_Codes_Burgdorf_2027.pdf",
             mime="application/pdf",
             use_container_width=True
         )
@@ -1378,14 +1379,13 @@ elif st.session_state.view == "QR_Codes":
                         for idx, judge in enumerate(judges):
                             with j_cols[idx % 3]:
                                 st.success(f"Richter: {judge}")
-                                # KORRIGIERT: role=Judge statt role=Richter
                                 j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
                                 st.image(generate_qr_image(j_url), width=200)
                                 st.write("---")
                     else:
-                        st.write(f"Keine aktiven Richter für {label_text} in den Spalten gefunden.")
+                        st.info(f"Keine aktiven Richter für {label_text} eingetragen.")
                 else:
-                    st.error(f"Spalten {show_col} oder {r_col} fehlen in den Daten!")
+                    st.info(f"Hinweis: Die Spalten für **{label_text}** ('{show_col}' / '{r_col}') sind in der aktuellen Excel-Datei nicht vorhanden.")
 
     # ---------------- TABS FÜR SHOW A, B, C GENERIEREN ----------------
     render_web_show_tabs(tab_show_a, "SHOW A", "Richter Show 1", "A", "Show A")
