@@ -1731,11 +1731,31 @@ elif st.session_state.view in ["Nomination_Labels", "Nomination Labels"]:
     df_full = load_labels()
     
     if df_full is not None:
-        # Nur Katzen filtern mit Nominierungs-X
-        df_nominierte = df_full[df_full['SELECTION'].astype(str).str.upper() == 'X'].copy()
+        # --- ERWEITERUNG: AUSWAHL DER SHOW / SELECTION-SPALTE ---
+        show_wahl = st.radio(
+            "Aus welcher Show sollen die Nominierungen geladen werden?",
+            options=["Show A (SELECTION A)", "Show B (SELECTION B)", "Show C (SELECTION C)"],
+            horizontal=True,
+            key="nom_label_show_select"
+        )
+        
+        # Mapping der Auswahl auf die exakte Excel-Spalte
+        spalten_mapping = {
+            "Show A (SELECTION A)": "SELECTION A",
+            "Show B (SELECTION B)": "SELECTION B",
+            "Show C (SELECTION C)": "SELECTION C"
+        }
+        gewaehlte_spalte = spalten_mapping[show_wahl]
+        
+        # Dynamische Filterung basierend auf der gewählten Spalte
+        if gewaehlte_spalte in df_full.columns:
+            df_nominierte = df_full[df_full[gewaehlte_spalte].astype(str).str.upper() == 'X'].copy()
+        else:
+            st.error(f"Die Spalte '{gewaehlte_spalte}' wurde in den Excel-Daten nicht gefunden!")
+            df_nominierte = pd.DataFrame()
         
         if not df_nominierte.empty:
-            st.info(f"Aktuell sind **{len(df_nominierte)}** Katzen für den Labeldruck bereit.")
+            st.info(f"Aktuell sind **{len(df_nominierte)}** Katzen aus **{gewaehlte_spalte}** für den Labeldruck bereit.")
             
             # ABSOLUT STABILE IMPORTS
             import reportlab
@@ -1911,7 +1931,7 @@ elif st.session_state.view in ["Nomination_Labels", "Nomination Labels"]:
             st.download_button(
                 label="📥 Avery Zweckform PDF generieren & herunterladen",
                 data=pdf_labels,
-                file_name="KECB_Nomination_Labels_Sorted.pdf",
+                file_name=f"KECB_Nomination_Labels_{gewaehlte_spalte}.pdf",
                 mime="application/pdf"
             )
             
@@ -1933,10 +1953,11 @@ elif st.session_state.view in ["Nomination_Labels", "Nomination Labels"]:
             aktuelle_config = {col: schoene_namen[col] for col in verfuegbare_spalten if col in schoene_namen}
             st.dataframe(df_nominierte[verfuegbare_spalten], column_config=aktuelle_config, use_container_width=True, hide_index=True)
             
+        else:
+            st.warning(f"Keine nominierten Katzen in der Spalte '{gewaehlte_spalte}' gefunden.")
+            
         if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_labels"):
             set_view("Home")
-
-
 
 # ADMIN PANEL
 elif st.session_state.view == "Admin_Panel":
