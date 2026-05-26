@@ -474,25 +474,34 @@ def set_view(name):
 # NEU: Das zentrale Filter-Zentrum für Slots und Kategorien
 # =====================================================================
 def get_filtered_live_cats(df):
-    if df is None or df.empty:
-        return pd.DataFrame()
+    """Filtert das DataFrame basierend auf der aktiven Bewertung und den freigegebenen Kategorien."""
+    if df is None:
+        return None
         
-    # 1. Ermittle den aktiven Slot aus dem Session State
-    aktiver_slot = st.session_state.get('aktive_show', 'SHOW A')
+    # Admin-Auswahl direkt aus dem Session State holen
+    aktive_bewertung = st.session_state.get('aktive_show', 'BEWERTUNG 1')
+    aktive_kategorien = st.session_state.get('aktive_kategorien', ["1", "2", "3", "4", "5"])
     
-    # Sicherstellen, dass die Spalte im DataFrame existiert
-    if aktiver_slot not in df.columns:
-        st.error(f"Kritischer Fehler: Die Spalte '{aktiver_slot}' existiert nicht in der Datentabelle!")
-        return df
+    df_filtered = df.copy()
+    
+    # Mapping von der Admin-Bewertung zu den echten Excel-Teilnahmespalten (SHOW A, B, C)
+    show_mapping = {
+        "BEWERTUNG 1": "SHOW A",
+        "BEWERTUNG 2": "SHOW B",
+        "BEWERTUNG 3": "SHOW C"
+    }
+    
+    ziel_show_spalte = show_mapping.get(aktive_bewertung, "SHOW A")
+    
+    # Filter 1: Nur Katzen, die in der Spalte der Ziel-Show ein 'X' eingetragen haben
+    if ziel_show_spalte in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered[ziel_show_spalte].astype(str).str.upper() == 'X'].copy()
+    else:
+        return pd.DataFrame(columns=df.columns)
         
-    # 2. Filtere auf Katzen, die im aktiven Slot ein 'X' (oder 'x') eingetragen haben
-    df_filtered = df[df[aktiver_slot].astype(str).str.upper() == 'X'].copy()
-    
-    # 3. Filtere zusätzlich nach den vom Admin freigegebenen Kategorien
-    aktive_kat_list = st.session_state.get('aktive_kategorien', ["1", "2", "3", "4", "5"])
-    
+    # Filter 2: Nur Katzen aus den vom Admin für diese Show AKTIVIERTEN Kategorien
     if 'KATEGORIE' in df_filtered.columns:
-        df_filtered = df_filtered[df_filtered['KATEGORIE'].astype(str).str.strip().isin(aktive_kat_list)]
+        df_filtered = df_filtered[df_filtered['KATEGORIE'].astype(str).str.strip().isin([str(k) for k in aktive_kategorien])]
         
     return df_filtered
 
