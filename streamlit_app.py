@@ -1282,7 +1282,7 @@ elif st.session_state.view == "QR_Codes":
         
         # --- ADMIN DIREKT ZEICHNEN ---
         story.append(Paragraph("1. Allgemeine Logins und Admins", section_style))
-        adm_url = f"{base_url}?view=admin&auth=true&role=Admin"
+        adm_url = f"{base_url}?view=Admin_Panel&auth=true&role=Admin"
         
         qr = qrcode.QRCode(version=1, box_size=4, border=1)
         qr.add_data(adm_url)
@@ -1299,24 +1299,29 @@ elif st.session_state.view == "QR_Codes":
         
         # --- DATEN FÜR SHOW A, B UND C SAMMELN ---
         all_qr_items = []
+        # KORREKTUR: Spaltennamen exakt an deine Excel-Struktur angepasst ("RICHTER SHOW A" etc.)
         shows_config = [
-            ("Richter Show 1", "A", "Show A"),
-            ("Richter Show 2", "B", "Show B"),
-            ("Richter Show 3", "C", "Show C")
+            ("RICHTER SHOW A", "Show A", "Show A"),
+            ("RICHTER SHOW B", "Show B", "Show B"),
+            ("RICHTER SHOW C", "Show C", "Show C")
         ]
         
         for r_col, param_val, label_text in shows_config:
             if df is not None and r_col in df.columns:
-                # Holt alle eindeutigen Richternamen direkt aus der Spalte (ohne 'X'-Abfrage)
+                # Holt alle eindeutigen Richternamen direkt aus der korrekten Spalte
                 judges = sorted([r for r in df[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
                 
                 for judge in judges:
+                    # KORREKTUR: URLs auf deine exakten Session-State Views ("Steward_Panel") und Richter-Parameter umgestellt
+                    # &day=X wird mitgegeben, damit das Pult die korrekte Show vorauswählt
+                    day_num = "1" if param_val == "Show A" else ("2" if param_val == "Show B" else "3")
+                    
                     # Stewards Link
-                    stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&show={param_val}"
+                    stew_url = f"{base_url}?view=Steward_Panel&auth=true&role=Steward&url_judge={judge.replace(' ', '+')}&day={day_num}"
                     all_qr_items.append((f"Steward fuer: {judge} ({label_text})", stew_url, f"2. Steward-Links für {label_text}"))
                     
                     # Richter Link
-                    j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
+                    j_url = f"{base_url}?view=Richter_Panel&auth=true&role=Judge&url_judge={judge.replace(' ', '+')}&day={day_num}"
                     all_qr_items.append((f"Richter: {judge} ({label_text})", j_url, f"3. Richter-Direkt-Links für {label_text}"))
         
         # --- Grid im PDF generieren ---
@@ -1399,7 +1404,7 @@ elif st.session_state.view == "QR_Codes":
         col_adm, _ = st.columns(2)
         with col_adm:
             st.warning("⚙️ ADMIN MAIN HOME")
-            adm_url = f"{base_url}?view=admin&auth=true&role=Admin"
+            adm_url = f"{base_url}?view=Admin_Panel&auth=true&role=Admin"
             st.image(generate_qr_image(adm_url), width=230)
             st.caption(f"[Link kopieren]({adm_url})")
             
@@ -1408,16 +1413,19 @@ elif st.session_state.view == "QR_Codes":
         with tab_obj:
             if df_full is not None:
                 if r_col in df_full.columns:
-                    # Direkte Ermittlung der Richternamen aus der Spalte
+                    # KORREKTUR: Direkte Ermittlung der Richternamen aus der korrekten Excel-Spalte
                     judges = sorted([r for r in df_full[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
                     
                     if judges:
+                        day_num = "1" if label_text == "Show A" else ("2" if label_text == "Show B" else "3")
+                        
                         st.markdown(f"### 📝 Steward-Links für {label_text}")
                         s_cols = st.columns(3)
                         for idx, judge in enumerate(judges):
                             with s_cols[idx % 3]:
                                 st.info(f"Steward für: {judge}")
-                                stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&show={param_val}"
+                                # KORREKTUR: URL-Parameter auf url_judge und passenden view-Namen umgebogen
+                                stew_url = f"{base_url}?view=Steward_Panel&auth=true&role=Steward&url_judge={judge.replace(' ', '+')}&day={day_num}"
                                 st.image(generate_qr_image(stew_url), width=200)
                                 st.write("---")
                                 
@@ -1426,7 +1434,8 @@ elif st.session_state.view == "QR_Codes":
                         for idx, judge in enumerate(judges):
                             with j_cols[idx % 3]:
                                 st.success(f"Richter: {judge}")
-                                j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
+                                # KORREKTUR: URL-Parameter auf url_judge und passenden view-Namen umgebogen
+                                j_url = f"{base_url}?view=Richter_Panel&auth=true&role=Judge&url_judge={judge.replace(' ', '+')}&day={day_num}"
                                 st.image(generate_qr_image(j_url), width=200)
                                 st.write("---")
                     else:
@@ -1435,13 +1444,15 @@ elif st.session_state.view == "QR_Codes":
                     st.error(f"Die Spalte '{r_col}' fehlt in den Excel-Daten!")
 
     # ---------------- TABS FÜR SHOW A, B, C GENERIEREN ----------------
-    render_web_show_tabs(tab_show_a, "Richter Show 1", "A", "Show A")
-    render_web_show_tabs(tab_show_b, "Richter Show 2", "B", "Show B")
-    render_web_show_tabs(tab_show_c, "Richter Show 3", "C", "Show C")
+    # KORREKTUR: Übergabe der echten Spaltenüberschriften aus deiner Datenstruktur
+    render_web_show_tabs(tab_show_a, "RICHTER SHOW A", "Show A", "Show A")
+    render_web_show_tabs(tab_show_b, "RICHTER SHOW B", "Show B", "Show B")
+    render_web_show_tabs(tab_show_c, "RICHTER SHOW C", "Show C", "Show C")
                 
     # --- ZURÜCK NAVI ---
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
-        set_view("Home")
+        st.session_state.view = "Home"
+        st.rerun()
                 
 # --- NEUER MENÜPUNKT: NOMINIERTE KATZEN (VOLLE FILTER- & SORTIERFUNKTION) ---
 elif st.session_state.view == "Nominated_Cats":
