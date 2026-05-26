@@ -1475,7 +1475,7 @@ elif st.session_state.view == "Nominated_Cats":
   
  		# Mapping der Richter-Spalte (Wichtig: Prüfe, ob dies mit deinem Excel übereinstimmt!)
         # Falls deine Spalten im Excel "RICHTER SHOW A" heißen, dann nimm diese Zeile:
-        richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
+        richter_map = {"Show A": "Richter Show A", "Show B": "Richter Show B", "Show C": "Richter Show C"}
         richter_col = richter_map[show_wahl]
 
 	
