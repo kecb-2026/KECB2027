@@ -1253,9 +1253,9 @@ elif st.session_state.view == "QR_Codes":
         # --- DATEN FÜR SHOW A, B UND C SAMMELN ---
         all_qr_items = []
         shows_config = [
-            ("SHOW A", "Richter Show 1", "A", "Show A"),
-            ("SHOW B", "Richter Show 2", "B", "Show B"),
-            ("SHOW C", "Richter Show 3", "C", "Show C")
+            ("Richter Show 1", "Richter Show 1", "A", "Show A"),
+            ("Richter Show 2", "Richter Show 2", "B", "Show B"),
+            ("Richter Show 3", "Richter Show 3", "C", "Show C")
         ]
         
         for show_col, r_col, param_val, label_text in shows_config:
@@ -1388,9 +1388,9 @@ elif st.session_state.view == "QR_Codes":
                     st.info(f"Hinweis: Die Spalten für **{label_text}** ('{show_col}' / '{r_col}') sind in der aktuellen Excel-Datei nicht vorhanden.")
 
     # ---------------- TABS FÜR SHOW A, B, C GENERIEREN ----------------
-    render_web_show_tabs(tab_show_a, "SHOW A", "Richter Show 1", "A", "Show A")
-    render_web_show_tabs(tab_show_b, "SHOW B", "Richter Show 2", "B", "Show B")
-    render_web_show_tabs(tab_show_c, "SHOW C", "Richter Show 3", "C", "Show C")
+    render_web_show_tabs(tab_show_a, "Richter Show 1", "Richter Show 1", "A", "Show A")
+    render_web_show_tabs(tab_show_b, "Richter Show 2", "Richter Show 2", "B", "Show B")
+    render_web_show_tabs(tab_show_c, "Richter Show 3", "Richter Show 3", "C", "Show C")
                 
     # --- ZURÜCK NAVI ---
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
