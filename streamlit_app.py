@@ -1457,17 +1457,11 @@ elif st.session_state.view == "QR_Codes":
 
 
 		
-# --- NEUER MENÜPUNKT: NOMINIERTE KATZEN ---
+# --- NEUER MENÜPUNKT: NOMINIERTE KATZEN (VOLLE FILTER- & SORTIERFUNKTION) ---
 elif st.session_state.view == "Nominated_Cats":
     display_header_with_logo("🏅 Nominierte Katzen (Admin-Zentrale)")
     
     df_full = load_labels()
-
-	# --- DIAGNOSE-BLOCK ---
-if df_full is not None:
-    st.write("Vorhandene Spalten im Datensatz:")
-    st.write(df_full.columns.tolist()) 
-# ----------------------
     
     if df_full is not None:
         # --- SHOW-AUSWAHL ---
@@ -1478,12 +1472,12 @@ if df_full is not None:
             key="nom_show_selector"
         )
         
-        # Mapping der Spalten
+        # Mapping der Spalten laut deiner Liste
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
         ziel_spalte = spalten_map[show_wahl]
-  
-        # Mapping der Richter-Spalte (Hier ist der Schlüssel!)
-        richter_map = {"Show A": "Richter Show A", "Show B": "Richter Show B", "Show C": "Richter Show C"}
+        
+        # Mapping der Richter-Spalten laut deiner Liste
+        richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
         ziel_richter_col = richter_map[show_wahl]
         
         # Filterung auf die gewählte Spalte
@@ -1495,13 +1489,12 @@ if df_full is not None:
             for _, row in df_nominierte.iterrows():
                 kat_nr = row.get('KAT_STR', str(row.get('KATALOG-NR', ''))).replace('.0', '')
                 
-                # RICHTIG: Nutze hier die Variable, die oben im Mapping definiert wurde
+                # Exakte Spalte aus dem Mapping verwenden
                 richter_name = row.get(ziel_richter_col, '-')
                 
                 klasse = row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', '-')))
                 
-                geb_cols = [c for c in row.index if "GEB" in c or "GEBURT" in c]
-                geb_datum = row[geb_cols[0]] if geb_cols else row.get('GEB_DATUM', '-')
+                geb_datum = row.get('GEBURTSDATUM', '-')
                 if isinstance(geb_datum, pd.Timestamp): 
                     geb_datum = geb_datum.strftime('%d.%m.%Y')
                 
@@ -1522,7 +1515,6 @@ if df_full is not None:
             # --- SEKTION: FILTER & SORTIERUNG ---
             st.markdown("### 🔍 Filter & Sortierung")
             
-            # (Rest des Codes bleibt exakt wie er war)
             c_f1, c_f2 = st.columns(2)
             with c_f1:
                 richter_optionen = ["Alle Richter"] + sorted([str(r) for r in df_nom_display['Richter'].unique() if r != "-"])
@@ -1575,7 +1567,6 @@ if df_full is not None:
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_nom"):
         set_view("Home")
         st.rerun()
-        
             
 # --- NEUER MENÜPUNKT: JUDGE LIST ---
 elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge List":
