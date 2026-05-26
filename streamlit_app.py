@@ -944,7 +944,7 @@ elif st.session_state.view == "Dashboard":
         
         # NEU: Filtern nach den im Admin-Bereich freigegebenen Kategorien
         # .astype(str) stellt sicher, dass z.B. die Zahl 1 mit dem String "1" matcht
-        df_tag = df_tag[df_tag['Kategorie'].astype(str).isin(allowed_categories)]
+        df_tag = df_tag[df_tag['KATEGORIE'].astype(str).isin(allowed_categories)]
         
         judges = sorted([r for r in df_tag[r_col].unique() if str(r) != "nan"])
         
