@@ -767,36 +767,61 @@ elif st.session_state.view == "Home":
     # Statusmeldung
     st.success(f"📡 Modus aktiv: **{aktive_show}** zeigt Kategorien: **{', '.join(updated_kats) if updated_kats else 'Keine'}**")
 
-# BIS ADMIN CONTROL
+# --- BIS ADMIN CONTROL ---
 elif st.session_state.view == "BIS_Admin_Control":
     display_header_with_logo("👨‍⚖️ BIS Control Center")
     df_full = load_labels()
+    
     if df_full is not None:
+        # 1. SHOW-AUSWAHL HINZUFÜGEN
+        show_wahl = st.radio("Wähle die Show:", ["Show A", "Show B", "Show C"], horizontal=True, key="bis_show_selector")
+        spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
+        ziel_spalte = spalten_map[show_wahl]
+        
         sel_cat = st.selectbox("Kategorie verwalten:", sorted(df_full['KATEGORIE'].unique()))
-        bis_defs = [("Adult Male", [1,3,5,7,9], "M"), ("Adult Female", [1,3,5,7,9], "W"), ("Neuter Male", [2,4,6,8,10], "M"), ("Neuter Female", [2,4,6,8,10], "W"), ("Junior 8-12 Male", [11], "M"), ("Junior 8-12 Female", [11], "W"), ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")]
+        
+        bis_defs = [
+            ("Adult Male", [1,3,5,7,9], "M"), ("Adult Female", [1,3,5,7,9], "W"), 
+            ("Neuter Male", [2,4,6,8,10], "M"), ("Neuter Female", [2,4,6,8,10], "W"), 
+            ("Junior 8-12 Male", [11], "M"), ("Junior 8-12 Female", [11], "W"), 
+            ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")
+        ]
         
         for label, klassen, geschl in bis_defs:
             with st.expander(f"KLASSE: {label}", expanded=True):
                 c_ctrl, c_votes = st.columns([1, 1.2])
-                v_prefix = f"v_{sel_cat}_{label}_"
+                # Show-ID in den Key einbauen, damit Show A und B unterschiedliche Daten speichern
+                v_prefix = f"v_{show_wahl}_{sel_cat}_{label}_"
+                
                 with c_ctrl:
                     st.markdown("**Steuerung**")
-                    key_reveal = f"reveal_{sel_cat}_{label}"; key_winner_reveal = f"winner_reveal_{sel_cat}_{label}"; key_override = f"override_{sel_cat}_{label}"
+                    key_reveal = f"reveal_{show_wahl}_{sel_cat}_{label}"
+                    key_winner_reveal = f"winner_reveal_{show_wahl}_{sel_cat}_{label}"
+                    key_override = f"override_{show_wahl}_{sel_cat}_{label}"
+                    
                     store.data[key_reveal] = st.checkbox("Nominationen anzeigen", value=store.data.get(key_reveal, False), key=f"cb1_{key_reveal}")
                     store.data[key_winner_reveal] = st.checkbox("BIS Gewinner anzeigen", value=store.data.get(key_winner_reveal, False), key=f"cb2_{key_winner_reveal}")
-                    pool = df_full[(df_full['SELECTION'].astype(str).str.upper() == 'X') & (df_full['KATEGORIE'] == sel_cat) & (df_full['KLASSE_INTERNAL'].isin(klassen)) & (df_full['GESCHLECHT'].astype(str).str.upper() == geschl)]
+                    
+                    # Hier wird nun die gewählte SHOW-Spalte abgefragt
+                    pool = df_full[(df_full[ziel_spalte].astype(str).str.upper() == 'X') & 
+                                   (df_full['KATEGORIE'] == sel_cat) & 
+                                   (df_full['KLASSE_INTERNAL'].isin(klassen)) & 
+                                   (df_full['GESCHLECHT'].astype(str).str.upper() == geschl)]
+                    
                     options = ["Automatisch (Stimmen)"] + sorted(pool['KAT_STR'].unique().tolist())
                     store.data[key_override] = st.selectbox(f"Gewinner festlegen:", options, index=options.index(store.data.get(key_override, "Automatisch (Stimmen)")) if store.data.get(key_override) in options else 0, key=f"sb_{key_override}")
                     
                     final_nr = None
-                    if store.data[key_override] != "Automatisch (Stimmen)": final_nr = store.data[key_override]
+                    if store.data[key_override] != "Automatisch (Stimmen)": 
+                        final_nr = store.data[key_override]
                     elif "votes" in store.data:
                         vts = [v for k, v in store.data["votes"].items() if k.startswith(v_prefix) and v != "Keine Wahl"]
                         if vts: final_nr = pd.Series(vts).value_counts().index[0]
-                    if final_nr and st.button(f"🏆 OVERLAY ZEIGEN (#{final_nr})", key=f"btn_ov_{sel_cat}_{label}"):
+                    
+                    if final_nr and st.button(f"🏆 OVERLAY ZEIGEN (#{final_nr})", key=f"btn_ov_{show_wahl}_{sel_cat}_{label}"):
                         w_match = df_full[df_full['KAT_STR'] == str(final_nr)]
                         if not w_match.empty:
-                            store.active_overlay = m_w = w_match.iloc[0].to_dict()
+                            store.active_overlay = w_match.iloc[0].to_dict()
                             store.overlay_start_time = time.time()
                             if "local_overlay_end" in st.session_state:
                                 st.session_state.local_overlay_end = 0
@@ -815,6 +840,9 @@ elif st.session_state.view == "BIS_Admin_Control":
                                 
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_bisadmin"):
         set_view("Home")
+        st.rerun()
+
+
 
 # BIS PUBLIC VIEW
 # BIS PUBLIC VIEW NEW
