@@ -707,7 +707,7 @@ elif st.session_state.view == "Home":
     st.divider()
    
     
-    # IM ADMIN-BEREICH AUF DER HOME-ANSICHT
+# IM ADMIN-BEREICH AUF DER HOME-ANSICHT
 st.markdown("### 🎛️ Zentrale Live-Steuerung")
 
 # 1. Auswahl der aktuell aktiven Bewertung für das Dashboard / Stewardpult
