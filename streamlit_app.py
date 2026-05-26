@@ -923,12 +923,31 @@ elif st.session_state.view == "BIS_Public":
 # LIVE DASHBOARD
 elif st.session_state.view == "Dashboard":
     display_header_with_logo("📢 Live-Aufruf & Status")
+    
+    # Holt die im Admin-Bereich aktiv geschaltete Bewertung (Fallback auf BEWERTUNG 1)
+    aktive_show = st.session_state.get('aktive_show', 'BEWERTUNG 1')
+    
+    # Holt die freigegebenen Kategorien für diese Bewertung (z. B. ['1', '2'])
+    # Fallback auf alle Kategorien, falls im Admin noch nichts initialisiert wurde
+    allowed_categories = st.session_state.get('show_kategorien_config', {}).get(
+        aktive_show, ["1", "2", "3", "4", "5"]
+    )
+    
     tag = st.sidebar.radio("Tag:", ["Tag 1", "Tag 2"]).upper()
     df_full = load_labels()
+    
     if df_full is not None:
         r_col = f"RICHTER {tag}"
+        
+        # 1. Filtern nach Tag (Tag 1 oder Tag 2)
         df_tag = df_full[df_full[tag].astype(str).str.upper() == 'X'].copy()
+        
+        # NEU: Filtern nach den im Admin-Bereich freigegebenen Kategorien
+        # .astype(str) stellt sicher, dass z.B. die Zahl 1 mit dem String "1" matcht
+        df_tag = df_tag[df_tag['Kategorie'].astype(str).isin(allowed_categories)]
+        
         judges = sorted([r for r in df_tag[r_col].unique() if str(r) != "nan"])
+        
         if judges:
             cols = st.columns(len(judges))
             for i, j in enumerate(judges):
@@ -951,6 +970,8 @@ elif st.session_state.view == "Dashboard":
                     for entry in judge_entries:
                         kat_nr = entry["key"].split("|")[0]
                         flags = entry["data"].get("flags", {})
+                        
+                        # Findet die Katze im bereits nach Kategorien gefilterten Datensatz
                         m = df_tag[df_tag['KAT_STR'] == kat_nr]
                         if not m.empty:
                             tags = "".join([f"<span class='tag tag-{t.lower().replace(' ', '')}'>{t}</span> " for t, val in flags.items() if val and t != "Gerichtet"])
@@ -962,7 +983,7 @@ elif st.session_state.view == "Dashboard":
                                         <div class='tag-container'>{tags}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
-                            
+                        
     st_autorefresh(interval=10000, key="dash_refresh")
 
 
