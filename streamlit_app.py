@@ -1258,17 +1258,17 @@ elif st.session_state.view == "QR_Codes":
             ("Richter Show 3", "C", "Show C")
         ]
         
-        for show_col, r_col, param_val, label_text in shows_config:
-            if df is not None and r_col in df.columns and show_col in df.columns:
-                df_show = df[df[show_col].astype(str).str.upper() == 'X']
-                judges = sorted([r for r in df_show[r_col].unique() if str(r) != "nan"])
+        for r_col, param_val, label_text in shows_config:
+            if df is not None and r_col in df.columns:
+                # Holt alle eindeutigen Richternamen direkt aus der Spalte (ohne 'X'-Abfrage)
+                judges = sorted([r for r in df[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
                 
                 for judge in judges:
                     # Stewards Link
                     stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&show={param_val}"
                     all_qr_items.append((f"Steward fuer: {judge} ({label_text})", stew_url, f"2. Steward-Links für {label_text}"))
                     
-                    # Richter Link (Hier mit role=Judge)
+                    # Richter Link
                     j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
                     all_qr_items.append((f"Richter: {judge} ({label_text})", j_url, f"3. Richter-Direkt-Links für {label_text}"))
         
@@ -1356,16 +1356,16 @@ elif st.session_state.view == "QR_Codes":
             st.image(generate_qr_image(adm_url), width=230)
             st.caption(f"[Link kopieren]({adm_url})")
             
-    # Helfer zum Rendern der Web-Inhalte (4 Parameter statt 5)
-    def render_web_show_tabs(tab_obj, show_col, r_col, param_val):
+    # Helfer zum Rendern der Web-Inhalte für Show A, B, C
+    def render_web_show_tabs(tab_obj, r_col, param_val, label_text):
         with tab_obj:
             if df_full is not None:
-                if r_col in df_full.columns and show_col in df_full.columns:
-                    df_show = df_full[df_full[show_col].astype(str).str.upper() == 'X']
-                    judges = sorted([r for r in df_show[r_col].unique() if str(r) != "nan"])
+                if r_col in df_full.columns:
+                    # Direkte Ermittlung der Richternamen aus der Spalte
+                    judges = sorted([r for r in df_full[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
                     
                     if judges:
-                        st.markdown(f"### 📝 Steward-Links")
+                        st.markdown(f"### 📝 Steward-Links für {label_text}")
                         s_cols = st.columns(3)
                         for idx, judge in enumerate(judges):
                             with s_cols[idx % 3]:
@@ -1374,7 +1374,7 @@ elif st.session_state.view == "QR_Codes":
                                 st.image(generate_qr_image(stew_url), width=200)
                                 st.write("---")
                                 
-                        st.markdown(f"### 👨‍⚖️ Richter-Direkt-Links")
+                        st.markdown(f"### 👨‍⚖️ Richter-Direkt-Links für {label_text}")
                         j_cols = st.columns(3)
                         for idx, judge in enumerate(judges):
                             with j_cols[idx % 3]:
@@ -1383,14 +1383,14 @@ elif st.session_state.view == "QR_Codes":
                                 st.image(generate_qr_image(j_url), width=200)
                                 st.write("---")
                     else:
-                        st.info(f"Keine aktiven Richter eingetragen.")
+                        st.info(f"Keine Richter in Spalte '{r_col}' gefunden.")
                 else:
-                    st.info(f"Hinweis: Die Spalten ('{show_col}' / '{r_col}') sind in der aktuellen Excel-Datei nicht vorhanden.")
+                    st.error(f"Die Spalte '{r_col}' fehlt in den Excel-Daten!")
 
     # ---------------- TABS FÜR SHOW A, B, C GENERIEREN ----------------
-    render_web_show_tabs(tab_show_a, "SHOW A", "Richter Show 1", "A")
-    render_web_show_tabs(tab_show_b, "SHOW B", "Richter Show 2", "B")
-    render_web_show_tabs(tab_show_c, "SHOW C", "Richter Show 3", "C")
+    render_web_show_tabs(tab_show_a, "Richter Show 1", "A", "Show A")
+    render_web_show_tabs(tab_show_b, "Richter Show 2", "B", "Show B")
+    render_web_show_tabs(tab_show_c, "Richter Show 3", "C", "Show C")
                 
     # --- ZURÜCK NAVI ---
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
