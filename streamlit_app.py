@@ -428,14 +428,33 @@ def roman_to_numeric(text):
 @st.cache_data(ttl=1)
 def load_labels():
     try:
-        df = pd.read_excel("2027.xlsx", engine='openpyxl', header=0)
+        # Laden der neuen Datei (angepasst auf deine 2027.xlsx)
+        df = pd.read_excel("2027.xlsx")
+        
+        # Alle Spaltennamen in Großbuchstaben umwandeln, um Tippfehler zu vermeiden
         df.columns = [str(c).strip().upper() for c in df.columns]
-        df = df.fillna("-")
-        df['KLASSE_INTERNAL'] = df['AUSSTELLUNGSKLASSE'] if 'AUSSTELLUNGSKLASSE' in df.columns else df.get('KLASSE', '')
+        
+        # Sicherstellen, dass die Katalognummer als saubere Text-Ziffer vorliegt
         if 'KATALOG-NR' in df.columns:
-            df['KAT_STR'] = df['KATALOG-NR'].astype(str).str.replace('.0', '', regex=False)
+            df['KAT_STR'] = df['KATALOG-NR'].astype(str).str.split('.').str[0].str.strip()
+        elif 'KATALOG_NR' in df.columns:
+            df['KAT_STR'] = df['KATALOG_NR'].astype(str).str.split('.').str[0].str.strip()
+        else:
+            df['KAT_STR'] = ""
+            
+        # Klassen-Fallback für geänderte Spaltenstrukturen
+        if 'AUSSTELLUNGSKLASSE' in df.columns:
+            df['KLASSE_INTERNAL'] = df['AUSSTELLUNGSKLASSE']
+        elif 'KLASSE' in df.columns:
+            df['KLASSE_INTERNAL'] = df['KLASSE']
+        else:
+            df['KLASSE_INTERNAL'] = ""
+            
+        # Leere Werte in Strings umwandeln, damit Filter nicht auf 'nan' prüfen müssen
+        df = df.fillna("")
         return df
-    except:
+    except Exception as e:
+        st.error(f"Fehler beim Laden der Datei (2027.xlsx): {e}")
         return None
 
 def get_full_label(row):
