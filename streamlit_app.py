@@ -745,7 +745,7 @@ elif st.session_state.view == "Home":
     with col5: 
         kat5 = st.checkbox("Kat 5", value=("5" in current_saved_kats), key=f"chk_{aktive_show}_5")
 
-    # Die getroffene Auswahl wieder passgenau für diese Show abspeichern
+        # Die getroffene Auswahl wieder passgenau für diese Show abspeichern
     updated_kats = []
     if kat1: updated_kats.append("1")
     if kat2: updated_kats.append("2")
@@ -754,10 +754,11 @@ elif st.session_state.view == "Home":
     if kat5: updated_kats.append("5")
 
     st.session_state['show_kategorien_config'][aktive_show] = updated_kats
+    # KORREKTUR: Synchronisation mit dem zentralen Kategorien-Filter
+    st.session_state['aktive_kategorien'] = updated_kats 
 
     # Statusmeldung
     st.success(f"📡 Modus aktiv: **{aktive_show}** zeigt Kategorien: **{', '.join(updated_kats) if updated_kats else 'Keine'}**")
-
 
 # BIS ADMIN CONTROL
 elif st.session_state.view == "BIS_Admin_Control":
