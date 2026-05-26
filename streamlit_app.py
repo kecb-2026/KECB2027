@@ -470,6 +470,37 @@ def set_view(name):
     st.session_state.view = name
     st.rerun()
 
+# =====================================================================
+# NEU: Das zentrale Filter-Zentrum für Slots und Kategorien
+# =====================================================================
+def get_filtered_live_cats(df):
+    if df is None or df.empty:
+        return pd.DataFrame()
+        
+    # 1. Ermittle den aktiven Slot aus dem Session State
+    aktiver_slot = st.session_state.get('aktive_show', 'SHOW A')
+    
+    # Sicherstellen, dass die Spalte im DataFrame existiert
+    if aktiver_slot not in df.columns:
+        st.error(f"Kritischer Fehler: Die Spalte '{aktiver_slot}' existiert nicht in der Datentabelle!")
+        return df
+        
+    # 2. Filtere auf Katzen, die im aktiven Slot ein 'X' (oder 'x') eingetragen haben
+    df_filtered = df[df[aktiver_slot].astype(str).str.upper() == 'X'].copy()
+    
+    # 3. Filtere zusätzlich nach den vom Admin freigegebenen Kategorien
+    aktive_kat_list = st.session_state.get('aktive_kategorien', ["1", "2", "3", "4", "5"])
+    
+    if 'KATEGORIE' in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered['KATEGORIE'].astype(str).str.strip().isin(aktive_kat_list)]
+        
+    return df_filtered
+
+
+# --- 5. NAVIGATION & ZUGRIFF ---
+access_map = {
+    "Public": ["Dashboard", "BIS_Public", "Login"],
+
 
 # --- 5. NAVIGATION & ZUGRIFF ---
 access_map = {
