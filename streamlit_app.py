@@ -1230,10 +1230,10 @@ elif st.session_state.view == "QR_Codes":
         label_style = ParagraphStyle('DocLabel', parent=styles['Normal'], fontSize=9, leading=12, alignment=1, textColor=colors.HexColor("#2D3748"))
         
         story = []
-        story.append(Paragraph("QR-Code Login Zentrale - Burgdorf 2026", title_style))
+        story.append(Paragraph("QR-Code Login Zentrale - Burgdorf 2027", title_style))
         story.append(Spacer(1, 10))
         
-        # --- FIX: ADMIN DIREKT ZEICHNEN (Nicht im 3er-Raster der Richter!) ---
+        # --- ADMIN DIREKT ZEICHNEN ---
         story.append(Paragraph("1. Allgemeine Logins und Admins", section_style))
         adm_url = f"{base_url}?view=admin&auth=true&role=Admin"
         
@@ -1245,38 +1245,32 @@ elif st.session_state.view == "QR_Codes":
         img_pil.save(img_buf, format="PNG")
         img_buf.seek(0)
         
-        # Platziert den Admin zentriert als Einzelelement
         admin_table = Table([[Paragraph("<b>ADMIN MAIN HOME</b>", label_style)], [Image(img_buf, width=90, height=90)]], colWidths=[180])
         admin_table.setStyle(TableStyle([('ALIGN', (0,0), (-1,-1), 'CENTER')]))
         story.append(admin_table)
         story.append(Spacer(1, 15))
         
-        # --- AB HIER NUR NOCH DIE LISTEN FÜR STUFENWEISE RASTER SAMMELN ---
+        # --- DATEN FÜR SHOW A, B UND C SAMMELN ---
         all_qr_items = []
+        shows_config = [
+            ("SHOW A", "Richter Show 1", "A", "Show A"),
+            ("SHOW B", "Richter Show 2", "B", "Show B"),
+            ("SHOW C", "Richter Show 3", "C", "Show C")
+        ]
         
-        # --- Daten sammeln: Tag 1 ---
-        if df is not None and 'RICHTER TAG 1' in df.columns:
-            judges_t1 = sorted([r for r in df['RICHTER TAG 1'].unique() if str(r) != "nan"])
-            for judge in judges_t1:
-                # Stewards Tag 1
-                stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&day=1"
-                all_qr_items.append((f"Steward fuer: {judge}", stew_url, "2. Steward-Links fuer TAG 1 (Samstag)"))
+        for show_col, r_col, param_val, label_text in shows_config:
+            if df is not None and r_col in df.columns and show_col in df.columns:
+                df_show = df[df[show_col].astype(str).str.upper() == 'X']
+                judges = sorted([r for r in df_show[r_col].unique() if str(r) != "nan"])
                 
-                # Richter Direkt Tag 1
-                j_url = f"{base_url}?view=richter&auth=true&role=Richter&judge={judge.replace(' ', '+')}&day=1"
-                all_qr_items.append((f"Richter: {judge} (Tag 1)", j_url, "3. Richter-Direkt-Links fuer TAG 1 (Samstag)"))
-                
-        # --- Daten sammeln: Tag 2 ---
-        if df is not None and 'RICHTER TAG 2' in df.columns:
-            judges_t2 = sorted([r for r in df['RICHTER TAG 2'].unique() if str(r) != "nan"])
-            for judge in judges_t2:
-                # Stewards Tag 2
-                stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&day=2"
-                all_qr_items.append((f"Steward fuer: {judge}", stew_url, "4. Steward-Links fuer TAG 2 (Sonntag)"))
-                
-                # Richter Direkt Tag 2
-                j_url = f"{base_url}?view=richter&auth=true&role=Richter&judge={judge.replace(' ', '+')}&day=2"
-                all_qr_items.append((f"Richter: {judge} (Tag 2)", j_url, "5. Richter-Direkt-Links fuer TAG 2 (Sonntag)"))
+                for judge in judges:
+                    # Stewards
+                    stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&show={param_val}"
+                    all_qr_items.append((f"Steward fuer: {judge} ({label_text})", stew_url, f"2. Steward-Links für {label_text}"))
+                    
+                    # Richter (KORRIGIERT: role=Judge statt role=Richter)
+                    j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
+                    all_qr_items.append((f"Richter: {judge} ({label_text})", j_url, f"3. Richter-Direkt-Links für {label_text}"))
         
         # --- Grid im PDF generieren ---
         unique_sections = list(dict.fromkeys([item[2] for item in all_qr_items]))
@@ -1313,7 +1307,7 @@ elif st.session_state.view == "QR_Codes":
                 row.append(cell)
                 if (i + 1) % 3 == 0 or (i + 1) == len(cells):
                     while len(row) < 3:
-                        row.append(Paragraph("", label_style)) # Saubere leere Zelle
+                        row.append(Paragraph("", label_style))
                     grid_data.append(row)
                     row = []
             
@@ -1346,12 +1340,14 @@ elif st.session_state.view == "QR_Codes":
     
     st.divider()
 
-    # Registerkarten für die Übersichtlichkeit (Web-Ansicht)
-    tab1, tab2, tab3 = st.tabs(["🤵 Stewards & Admins", "👨‍⚖️ Richter (Tag 1)", "👨‍⚖️ Richter (Tag 2)"])
+    # Registerkarten für die Web-Ansicht
+    tab_admin, tab_show_a, tab_show_b, tab_show_c = st.tabs([
+        "⚙️ Allgemein / Admins", "🏆 SHOW A", "🏆 SHOW B", "🏆 SHOW C"
+    ])
     
-    # ---------------- TAB 1: STEWARDS & ADMINS ----------------
-    with tab1:
-        st.subheader("Allgemeine Logins")
+    # ---------------- TAB: ADMINS ----------------
+    with tab_admin:
+        st.subheader("Zentraler Administrator")
         col_adm, _ = st.columns(2)
         with col_adm:
             st.warning("⚙️ ADMIN MAIN HOME")
@@ -1359,93 +1355,46 @@ elif st.session_state.view == "QR_Codes":
             st.image(generate_qr_image(adm_url), width=230)
             st.caption(f"[Link kopieren]({adm_url})")
             
-        st.divider()
-        
-        if df_full is not None:
-            # --- SEKTION: TAG 1 ---
-            st.markdown("### 📝 Steward-Links für TAG 1 (Samstag)")
-            st.write("Diese QR-Codes filtern fest auf die Richter von Tag 1:")
-            
-            if 'RICHTER TAG 1' in df_full.columns:
-                judges_t1 = sorted([r for r in df_full['RICHTER TAG 1'].unique() if str(r) != "nan"])
-                if judges_t1:
-                    s_cols_t1 = st.columns(3)
-                    for idx, judge in enumerate(judges_t1):
-                        with s_cols_t1[idx % 3]:
-                            st.info(f"Steward für: {judge}")
-                            stew_url_t1 = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&day=1"
-                            st.image(generate_qr_image(stew_url_t1), width=200)
-                            st.write("---")
+    # Helfer zum Rendern der Web-Inhalte für Show A, B, C
+    def render_web_show_tabs(tab_obj, show_col, r_col, param_val, label_text):
+        with tab_obj:
+            if df_full is not None:
+                if r_col in df_full.columns and show_col in df_full.columns:
+                    df_show = df_full[df_full[show_col].astype(str).str.upper() == 'X']
+                    judges = sorted([r for r in df_show[r_col].unique() if str(r) != "nan"])
+                    
+                    if judges:
+                        st.markdown(f"### 📝 Steward-Links für {label_text}")
+                        s_cols = st.columns(3)
+                        for idx, judge in enumerate(judges):
+                            with s_cols[idx % 3]:
+                                st.info(f"Steward für: {judge}")
+                                stew_url = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&show={param_val}"
+                                st.image(generate_qr_image(stew_url), width=200)
+                                st.write("---")
+                                
+                        st.markdown(f"### 👨‍⚖️ Richter-Direkt-Links für {label_text}")
+                        j_cols = st.columns(3)
+                        for idx, judge in enumerate(judges):
+                            with j_cols[idx % 3]:
+                                st.success(f"Richter: {judge}")
+                                # KORRIGIERT: role=Judge statt role=Richter
+                                j_url = f"{base_url}?view=richter&auth=true&role=Judge&judge={judge.replace(' ', '+')}&show={param_val}"
+                                st.image(generate_qr_image(j_url), width=200)
+                                st.write("---")
+                    else:
+                        st.write(f"Keine aktiven Richter für {label_text} in den Spalten gefunden.")
                 else:
-                    st.write("Keine Richter für Tag 1 gefunden.")
-            else:
-                st.error("Spalte 'RICHTER TAG 1' fehlt in den Daten!")
-                
-            st.write("") 
-            st.divider()
-            st.write("") 
-            
-            # --- SEKTION: TAG 2 ---
-            st.markdown("### 📝 Steward-Links für TAG 2 (Sonntag)")
-            st.write("Diese QR-Codes filtern fest auf die Richter von Tag 2:")
-            
-            if 'RICHTER TAG 2' in df_full.columns:
-                judges_t2 = sorted([r for r in df_full['RICHTER TAG 2'].unique() if str(r) != "nan"])
-                if judges_t2:
-                    s_cols_t2 = st.columns(3)
-                    for idx, judge in enumerate(judges_t2):
-                        with s_cols_t2[idx % 3]:
-                            st.info(f"Steward für: {judge}")
-                            stew_url_t2 = f"{base_url}?view=steward&auth=true&role=Steward&judge={judge.replace(' ', '+')}&day=2"
-                            st.image(generate_qr_image(stew_url_t2), width=200)
-                            st.write("---")
-                else:
-                    st.write("Keine Richter für Tag 2 gefunden.")
-            else:
-                st.error("Spalte 'RICHTER TAG 2' fehlt in den Daten!")
-                
-    # ---------------- TAB 2: RICHTER TAG 1 ----------------
-    with tab2:
-        st.subheader("Richter-Direkt-Links für TAG 1")
-        if df_full is not None:
-            if 'RICHTER TAG 1' in df_full.columns:
-                judges_t1 = sorted([r for r in df_full['RICHTER TAG 1'].unique() if str(r) != "nan"])
-                if judges_t1:
-                    j_cols = st.columns(3)
-                    for idx, judge in enumerate(judges_t1):
-                        with j_cols[idx % 3]:
-                            st.success(f"Richter: {judge}")
-                            j_url = f"{base_url}?view=richter&auth=true&role=Richter&judge={judge.replace(' ', '+')}&day=1"
-                            st.image(generate_qr_image(j_url), width=200)
-                            st.write("---")
-                else:
-                    st.write("Keine Richter für Tag 1 gefunden.")
-            else:
-                st.error("Spalte 'RICHTER TAG 1' fehlt in den Daten!")
+                    st.error(f"Spalten {show_col} oder {r_col} fehlen in den Daten!")
 
-    # ---------------- TAB 3: RICHTER TAG 2 ----------------
-    with tab3:
-        st.subheader("Richter-Direkt-Links für TAG 2")
-        if df_full is not None:
-            if 'RICHTER TAG 2' in df_full.columns:
-                judges_t2 = sorted([r for r in df_full['RICHTER TAG 2'].unique() if str(r) != "nan"])
-                if judges_t2:
-                    j_cols = st.columns(3)
-                    for idx, judge in enumerate(judges_t2):
-                        with j_cols[idx % 3]:
-                            st.success(f"Richter: {judge}")
-                            j_url = f"{base_url}?view=richter&auth=true&role=Richter&judge={judge.replace(' ', '+')}&day=2"
-                            st.image(generate_qr_image(j_url), width=200)
-                            st.write("---")
-                else:
-                    st.write("Keine Richter für Tag 2 gefunden.")
-            else:
-                st.error("Spalte 'RICHTER TAG 2' fehlt in den Daten!")
+    # ---------------- TABS FÜR SHOW A, B, C GENERIEREN ----------------
+    render_web_show_tabs(tab_show_a, "SHOW A", "Richter Show 1", "A", "Show A")
+    render_web_show_tabs(tab_show_b, "SHOW B", "Richter Show 2", "B", "Show B")
+    render_web_show_tabs(tab_show_c, "SHOW C", "Richter Show 3", "C", "Show C")
                 
     # --- ZURÜCK NAVI ---
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
         set_view("Home")
-                
                 
 # --- NEUER MENÜPUNKT: NOMINIERTE KATZEN (VOLLE FILTER- & SORTIERFUNKTION) ---
 elif st.session_state.view == "Nominated_Cats":
