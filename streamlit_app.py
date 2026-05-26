@@ -1614,38 +1614,40 @@ elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge Li
     df_full = load_labels()
     
     if df_full is not None:
-        # 1. Filter-Ebene: Tag & Richter
-        tag = st.sidebar.radio("Tag auswählen:", ["Tag 1", "Tag 2"], key="jl_tag_selector").upper()
-        r_col = f"RICHTER {tag}"
+        # 1. Filter-Ebene: Show Auswahl (A, B oder C)
+        show_wahl = st.sidebar.radio("Show auswählen:", ["Show A", "Show B", "Show C"], key="jl_show_selector")
         
-        # Alle Richter holen, die an diesem Tag aktiv sind
-        all_j = sorted([r for r in df_full[df_full[tag].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
+        # Mapping der Auswahl auf die Spaltennamen im Excel
+        r_col = f"RICHTER {show_wahl.upper()}"
+        
+        # Alle Richter holen, die in der gewählten Spalte eingetragen sind
+        all_j = sorted([r for r in df_full[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
         
         c1, c2 = st.columns(2)
         mein_richter = c1.selectbox("Richter filtern:", ["--"] + all_j, key="jl_judge")
         
         if mein_richter != "--":
-            # Kategorien für diesen Richter ermitteln
-            df_richter_alle = df_full[(df_full[tag].astype(str).str.upper() == 'X') & (df_full[r_col] == mein_richter)]
+            # Kategorien für diesen Richter in dieser Show ermitteln
+            df_richter_alle = df_full[df_full[r_col] == mein_richter]
             verfuegbare_kategorien = sorted(list(set([str(cat).replace('.0', '') for cat in df_richter_alle['KATEGORIE'].unique() if pd.notna(cat)])))
+            
             meine_kategorie = c2.selectbox("Kategorie filtern:", verfuegbare_kategorien, key="jl_cat")
             
-            # Daten filtern und sortieren nach Katalog-Nr
-            df_filtered = df_richter_alle[df_richter_alle['KATEGORIE'].astype(str).str.replace('.0', '') == meine_kategorie].sort_values('KATALOG-NR')
+            # Daten filtern und sortieren nach Katalog-Nr (KAT_STR)
+            df_filtered = df_richter_alle[df_richter_alle['KATEGORIE'].astype(str).str.replace('.0', '') == meine_kategorie].sort_values('KAT_STR')
             
             st.divider()
             
-            # --- NEU: ANZAHL DER KATZEN ANZEIGEN ---
+            # --- ANZAHL DER KATZEN ANZEIGEN ---
             anzahl_katzen = len(df_filtered)
             st.markdown(f"**Gemeldete Katzen in dieser Auswahl:** {anzahl_katzen}")
-            # ---------------------------------------
             
             # Vorbereitung der Tabellendaten
             table_rows = []
             
             for _, row in df_filtered.iterrows():
                 nr = row['KAT_STR']
-                ems = row.get('RASSE_KURZ', row.get('RASSE', '')) + " " + row.get('FARBE', '')
+                ems = str(row.get('RASSE', '')) + " " + str(row.get('FARBE', ''))
                 sex = row.get('GESCHLECHT', 'N/A')
                 klasse = str(row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', 'N/A')))).replace('.0', '')
                 
@@ -1657,16 +1659,13 @@ elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge Li
                 elif pd.isna(geb_datum) or str(geb_datum).strip().lower() == "nan": 
                     geb_datum = "–"
                 
-                # 8-Spalten Logik initialisieren
+                # 8-Spalten Logik
                 x_cols = {"Ad ♂": "", "Ad ♀": "", "K ♂": "", "K ♀": "", "11 ♂": "", "11 ♀": "", "12 ♂": "", "12 ♀": ""}
                 
-                                # Automatische Zuordnung basierend auf Klasse und Geschlecht (Sex)
                 try:
                     kl_num = int(klasse)
-                    
-                    # KORREKTUR: Erkennt nun "1,0" sowie "m" und "M" zuverlässig als Kater
                     sex_clean = str(sex).strip().lower()
-                    is_male = (sex_clean == "1,0" or sex_clean == "m")
+                    is_male = (sex_clean in ["1,0", "1.0", "m", "male"])
                     
                     if kl_num in [1, 3, 5, 7, 9]:
                         x_cols["Ad ♂" if is_male else "Ad ♀"] = "X"
@@ -1676,10 +1675,9 @@ elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge Li
                         x_cols["11 ♂" if is_male else "11 ♀"] = "X"
                     elif kl_num == 12:
                         x_cols["12 ♂" if is_male else "12 ♀"] = "X"
-                except ValueError:
-                    pass # Für den Fall, dass Klassen-Werte nicht konvertierbar sind
+                except (ValueError, TypeError):
+                    pass 
                 
-                # Zeile zusammensetzen
                 row_entry = {
                     "Nr.": nr,
                     "EMS-Code": ems,
@@ -1693,7 +1691,6 @@ elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge Li
             if table_rows:
                 df_display = pd.DataFrame(table_rows)
                 
-                # Darstellung als sortierbare Streamlit-Tabelle
                 st.dataframe(
                     df_display, 
                     use_container_width=True, 
@@ -1701,8 +1698,6 @@ elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge Li
                     height=650,
                     column_config={
                         "Nr.": st.column_config.TextColumn(width="small"),
-                        "Sex": st.column_config.TextColumn(width="small"),
-                        "Kl.": st.column_config.TextColumn(width="small"),
                         "Ad ♂": st.column_config.TextColumn(alignment="center"),
                         "Ad ♀": st.column_config.TextColumn(alignment="center"),
                         "K ♂": st.column_config.TextColumn(alignment="center"),
@@ -1713,15 +1708,15 @@ elif st.session_state.view == "Judge_List" or st.session_state.view == "Judge Li
                         "12 ♀": st.column_config.TextColumn(alignment="center"),
                     }
                 )
-                
-                st.caption("💡 Tipp: Klicke auf die Spaltenköpfe (z.B. '12 ♀'), um die Katzen zu sortieren und Konkurrenten direkt im Blick zu haben!")
+                st.caption("💡 Tipp: Klicke auf die Spaltenköpfe, um direkt nach Geschlecht/Klasse zu sortieren.")
             else:
                 st.info("Keine Katzen für diese Auswahl gemeldet.")
         else:
             st.info("Bitte wähle einen Richter aus der Liste aus, um die Judge List anzuzeigen.")
             
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_judgebook"):
-        set_view("Home")
+        st.session_state.view = "Home"
+        st.rerun()
 
 # --- EIGENSTÄNDIGE VIEW: NOMINATION LABELS DRUCK ---
 elif st.session_state.view in ["Nomination_Labels", "Nomination Labels"]:
