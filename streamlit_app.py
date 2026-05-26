@@ -921,21 +921,41 @@ elif st.session_state.view == "BIS_Public":
     time.sleep(3); st.rerun()
     
 # LIVE DASHBOARD
+# LIVE DASHBOARD
 elif st.session_state.view == "Dashboard":
     display_header_with_logo("📢 Live-Aufruf & Status")
-    tag = st.sidebar.radio("Tag:", ["Tag 1", "Tag 2"]).upper()
+    
     df_full = load_labels()
+    
     if df_full is not None:
-        r_col = f"RICHTER {tag}"
-        df_tag = df_full[df_full[tag].astype(str).str.upper() == 'X'].copy()
-        judges = sorted([r for r in df_tag[r_col].unique() if str(r) != "nan"])
-        if judges:
-            cols = st.columns(len(judges))
-            for i, j in enumerate(judges):
-                with cols[i]:
-                    st.markdown(f"<div class='judge-header-box'>{j}</div>", unsafe_allow_html=True)
-                    
-                    judge_entries = []
+        aktive_bewertung = st.session_state.get('aktive_show', 'BEWERTUNG 1')
+        
+        # Kategorien für die Dashboard-Anzeige auslesen
+        if 'show_kategorien_config' in st.session_state:
+            aktive_kats = st.session_state['show_kategorien_config'].get(aktive_bewertung, ["1", "2", "3", "4", "5"])
+        else:
+            aktive_kats = ["1", "2", "3", "4", "5"]
+            
+        # Daten filtern
+        df_tag = get_filtered_live_cats(df_full)
+        
+        # Richterspalten zuordnen (Exakt passend zu deiner Excel)
+        richter_mapping = {
+            "BEWERTUNG 1": "Richter Show 1",
+            "BEWERTUNG 2": "Richter Show 2",
+            "BEWERTUNG 3": "Richter Show 3"
+        }
+        r_col = richter_mapping.get(aktive_bewertung, "Richter Show 1")
+        
+        # Info-Banner auf dem Screen in der Halle
+        kats_anzeige = ", ".join(aktive_kats) if aktive_kats else "Keine"
+        st.info(f"🎬 Aktueller Aufruf: **{aktive_bewertung}** | 📊 Freigegebene Kategorien: **{kats_anzeige}**")
+        
+        # Holt alle eindeutigen Richternamen für die Anzeige-Kacheln
+        if r_col in df_tag.columns:
+            judges = sorted([r for r in df_tag[r_col].unique() if str(r).strip() != "" and str(r).upper() != "NAN"])
+        else:
+            judges = []
                     for k, v in store.data.items():
                         if "|" in k and k.split("|")[1] == j:
                             flags = v.get("flags", {}) if isinstance(v, dict) else {}
