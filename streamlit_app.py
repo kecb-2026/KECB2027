@@ -497,9 +497,7 @@ def get_filtered_live_cats(df):
     return df_filtered
 
 
-# --- 5. NAVIGATION & ZUGRIFF ---
-access_map = {
-    "Public": ["Dashboard", "BIS_Public", "Login"],
+
 
 
 # --- 5. NAVIGATION & ZUGRIFF ---
