@@ -1,1 +1,8 @@
 streamlit
+pandas
+openpyxl
+st-gsheets-connection
+streamlit_autorefresh
+qrcode
+pillow
+reportlab
