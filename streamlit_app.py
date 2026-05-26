@@ -1453,8 +1453,7 @@ elif st.session_state.view == "QR_Codes":
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
         st.session_state.view = "Home"
         st.rerun()
-                
-# --- NEUER MENÜPUNKT: NOMINIERTE KATZEN (VOLLE FILTER- & SORTIERFUNKTION) ---
+# --- NEUER MENÜPUNKT: NOMINIERTE KATZEN ---
 elif st.session_state.view == "Nominated_Cats":
     display_header_with_logo("🏅 Nominierte Katzen (Admin-Zentrale)")
     
@@ -1473,12 +1472,9 @@ elif st.session_state.view == "Nominated_Cats":
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
         ziel_spalte = spalten_map[show_wahl]
   
- 		# Mapping der Richter-Spalte (Wichtig: Prüfe, ob dies mit deinem Excel übereinstimmt!)
-        # Falls deine Spalten im Excel "RICHTER SHOW A" heißen, dann nimm diese Zeile:
+        # Mapping der Richter-Spalte (Hier ist der Schlüssel!)
         richter_map = {"Show A": "Richter Show A", "Show B": "Richter Show B", "Show C": "Richter Show C"}
-        richter_col = richter_map[show_wahl]
-
-	
+        ziel_richter_col = richter_map[show_wahl]
         
         # Filterung auf die gewählte Spalte
         df_nominierte = df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'].copy()
@@ -1489,9 +1485,8 @@ elif st.session_state.view == "Nominated_Cats":
             for _, row in df_nominierte.iterrows():
                 kat_nr = row.get('KAT_STR', str(row.get('KATALOG-NR', ''))).replace('.0', '')
                 
-                # Richter-Daten basierend auf der Show
-                richter_col = f"RICHTER {show_wahl.upper().replace('SHOW ', '')}"
-                richter_name = row.get(richter_col, '-')
+                # RICHTIG: Nutze hier die Variable, die oben im Mapping definiert wurde
+                richter_name = row.get(ziel_richter_col, '-')
                 
                 klasse = row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', '-')))
                 
@@ -1508,7 +1503,7 @@ elif st.session_state.view == "Nominated_Cats":
                     "Geschlecht": row.get('GESCHLECHT', '-'),
                     "Kategorie": row.get('KATEGORIE', '-'),
                     "Klasse": klasse,
-                    "Richter": str(richter_name) if pd.notna(richter_name) else "-",
+                    "Richter": str(richter_name) if pd.notna(richter_name) and str(richter_name) != "nan" else "-",
                     "Show": show_wahl
                 })
             
@@ -1517,6 +1512,7 @@ elif st.session_state.view == "Nominated_Cats":
             # --- SEKTION: FILTER & SORTIERUNG ---
             st.markdown("### 🔍 Filter & Sortierung")
             
+            # (Rest des Codes bleibt exakt wie er war)
             c_f1, c_f2 = st.columns(2)
             with c_f1:
                 richter_optionen = ["Alle Richter"] + sorted([str(r) for r in df_nom_display['Richter'].unique() if r != "-"])
@@ -1545,32 +1541,24 @@ elif st.session_state.view == "Nominated_Cats":
                 }
                 wahl_sortierung = st.selectbox("Primär sortieren nach:", list(sort_options.keys()))
             
-            # --- FILTER LOGIK ANWENDEN ---
+            # --- FILTER & SORTIER LOGIK ---
             if wahl_richter != "Alle Richter": df_nom_display = df_nom_display[df_nom_display['Richter'] == wahl_richter]
             if wahl_kategorie != "Alle Kategorien": df_nom_display = df_nom_display[df_nom_display['Kategorie'] == wahl_kategorie]
             if wahl_klasse != "Alle Klassen": df_nom_display = df_nom_display[df_nom_display['Klasse'] == wahl_klasse]
             if wahl_geschlecht != "Alle Geschlechter": df_nom_display = df_nom_display[df_nom_display['Geschlecht'] == wahl_geschlecht]
                 
-            # --- SORTIER LOGIK ANWENDEN ---
             if wahl_sortierung == "Katalog-Nr.":
                 df_nom_display = df_nom_display.sort_values(by="Katalog-Nr.", key=lambda x: pd.to_numeric(x, errors='coerce'))
             else:
                 df_nom_display = df_nom_display.sort_values(by=sort_options[wahl_sortierung])
 
-            st.success(f"Gefunden: {len(df_nom_display)} nominierte Katze(n) in {show_wahl} mit den gewählten Filtern.")
+            st.success(f"Gefunden: {len(df_nom_display)} nominierte Katze(n) in {show_wahl}.")
             
-            # Anzeige der Daten (ohne Tab-Logik für Tage, da diese entfallen sind)
             if not df_nom_display.empty:
                 st.dataframe(df_nom_display, use_container_width=True, hide_index=True)
             
-            # CSV Download
             csv = df_nom_display.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="📥 Gefilterte Liste als CSV herunterladen",
-                data=csv,
-                file_name=f"nominierte_{show_wahl.lower().replace(' ', '_')}.csv",
-                mime="text/csv",
-            )
+            st.download_button("📥 Gefilterte Liste als CSV herunterladen", data=csv, file_name=f"nominierte_{show_wahl.lower().replace(' ', '_')}.csv", mime="text/csv")
         else:
             st.info(f"In der Spalte '{ziel_spalte}' sind aktuell keine Katzen nominiert.")
             
