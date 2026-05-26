@@ -1023,111 +1023,133 @@ elif st.session_state.view == "Steward_Panel":
         mein_richter = st.selectbox("Richter wählen:", ["--"] + all_j, index=default_idx)
 
         if mein_richter != "--":
+            # Filtern nach Tag und gewähltem Richter
             df_richter_alle = df_full[(df_full[tag].astype(str).str.upper() == 'X') & (df_full[r_col] == mein_richter)]
-            verfuegbare_kategorien = sorted(list(set([str(cat).replace('.0', '') for cat in df_richter_alle['KATEGORIE'].unique() if pd.notna(cat)])))
-            meine_kategorie = st.selectbox("Kategorie wählen:", verfuegbare_kategorien)
             
-            df_j = df_richter_alle[df_richter_alle['KATEGORIE'].astype(str).str.replace('.0', '') == meine_kategorie].sort_values('KATALOG-NR')
-            st.divider()
+            # --- NEUE LOGIK: FILTERN NACH ADMIN-FREIGABE ---
+            # Holt die im Admin-Bereich aktiv geschaltete Bewertung (Fallback auf BEWERTUNG 1)
+            aktive_show = st.session_state.get('aktive_show', 'BEWERTUNG 1')
+            # Holt die freigegebenen Kategorien für diese Bewertung (Fallback auf alle 1-5)
+            allowed_categories = st.session_state.get('show_kategorien_config', {}).get(
+                aktive_show, ["1", "2", "3", "4", "5"]
+            )
             
-            for _, row in df_j.iterrows():
-                nr = row['KAT_STR']
-                k = f"{nr}|{mein_richter}"
+            # Erstellt die Auswahlliste der Kategorien basierend auf der Spalte 'KATEGORIE' (Großbuchstaben)
+            all_cats_for_judge = [str(cat).replace('.0', '').strip() for cat in df_richter_alle['KATEGORIE'].unique() if pd.notna(cat)]
+            
+            # Behält NUR Kategorien, die vom Admin JETZT freigegeben sind
+            verfuegbare_kategorien = sorted([cat for cat in all_cats_for_judge if cat in allowed_categories])
+            
+            if not verfuegbare_kategorien:
+                st.warning(f"Information: Für **{mein_richter}** sind in der aktuellen Show (**{aktive_show}**) momentan keine Kategorien freigeschaltet.")
+            else:
+                meine_kategorie = st.selectbox("Kategorie wählen:", verfuegbare_kategorien)
                 
-                # Spalten flexibel auslesen
-                klasse = row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', 'N/A')))
-                fg_cols = [c for c in row.index if "FARBGRUPPE" in c or "FARB-GRUPPE" in c]
-                farbgruppe = row[fg_cols[0]] if fg_cols else row.get('FARBGRUPPE', 'N/A')
-                if pd.isna(farbgruppe) or str(farbgruppe).strip().lower() == "nan": farbgruppe = "N/A"
+                # Filtern der Katzenliste nach der gewählten Kategorie
+                df_j = df_richter_alle[df_richter_alle['KATEGORIE'].astype(str).str.replace('.0', '').str.strip() == meine_kategorie]
                 
-                geschlecht = row.get('GESCHLECHT', 'N/A')
-                geb_cols = [c for c in row.index if "GEB" in c or "GEBURT" in c]
-                geb_datum = row[geb_cols[0]] if geb_cols else row.get('GEB_DATUM', 'N/A')
-                if isinstance(geb_datum, pd.Timestamp): geb_datum = geb_datum.strftime('%d.%m.%Y')
-                elif pd.isna(geb_datum) or str(geb_datum).strip().lower() == "nan": geb_datum = "N/A"
+                # Fehlervermeidung bei der Sortierung: Wir nutzen die sichere Spalte 'KAT_STR'
+                if 'KAT_STR' in df_j.columns:
+                    df_j = df_j.sort_values('KAT_STR', key=lambda x: pd.to_numeric(x, errors='coerce'))
+                elif 'Katalog-Nr' in df_j.columns:
+                    df_j = df_j.sort_values('Katalog-Nr')
                 
-                if k not in store.data or not isinstance(store.data[k], dict) or "flags" not in store.data[k]: 
-                    store.data[k] = {
-                        "flags": {"Zum Richten": False, "BIV": False, "NOM": False, "Gerichtet": False},
-                        "timestamp": 0
-                    }
+                st.divider()
                 
-                flags = store.data[k]["flags"]
-                card_class = "steward-card-wrapper gerichtet" if flags.get("Gerichtet") else "steward-card-wrapper"
-                
-                # --- START DES GRAUEN RECHTECKS ---
-                # Wir öffnen das div mit der Klasse steward-card-wrapper.
-                st.markdown(f"""
-                <div class="{card_class}">
-                    <div class="card-header-row">
-                        <span class="card-cat-number">Nr. {nr}</span>
-                        <span class="card-meta-main">{get_full_label(row)}</span>
-                    </div>
-                    <div class="grid-container">
-                        <span class="card-meta-sub"><span class="meta-label">Klasse:</span> {klasse}</span>
-                        <span class="card-meta-sub"><span class="meta-label">Farbgruppe:</span> {farbgruppe}</span>
-                        <span class="card-meta-sub"><span class="meta-label">Geschlecht:</span> {geschlecht}</span>
-                        <span class="card-meta-sub"><span class="meta-label">Geboren:</span> {geb_datum}</span>
-                    </div>
-                    <div style="border-top: 1px solid #e2e2e2; padding-top: 10px; margin-top: 12px; margin-bottom: 8px;"></div>
-                """, unsafe_allow_html=True)
-                
+                for _, row in df_j.iterrows():
+                    nr = row['KAT_STR']
+                    k = f"{nr}|{mein_richter}"
+                    
+                    # Spalten flexibel auslesen
+                    klasse = row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', 'N/A')))
+                    fg_cols = [c for c in row.index if "FARBGRUPPE" in c or "FARB-GRUPPE" in c]
+                    farbgruppe = row[fg_cols[0]] if fg_cols else row.get('FARBGRUPPE', 'N/A')
+                    if pd.isna(farbgruppe) or str(farbgruppe).strip().lower() == "nan": farbgruppe = "N/A"
+                    
+                    geschlecht = row.get('GESCHLECHT', 'N/A')
+                    geb_cols = [c for c in row.index if "GEB" in c or "GEBURT" in c]
+                    geb_datum = row[geb_cols[0]] if geb_cols else row.get('GEB_DATUM', 'N/A')
+                    if isinstance(geb_datum, pd.Timestamp): geb_datum = geb_datum.strftime('%d.%m.%Y')
+                    elif pd.isna(geb_datum) or str(geb_datum).strip().lower() == "nan": geb_datum = "N/A"
+                    
+                    if k not in store.data or not isinstance(store.data[k], dict) or "flags" not in store.data[k]: 
+                        store.data[k] = {
+                            "flags": {"Zum Richten": False, "BIV": False, "NOM": False, "Gerichtet": False},
+                            "timestamp": 0
+                        }
+                    
+                    flags = store.data[k]["flags"]
+                    card_class = "steward-card-wrapper gerichtet" if flags.get("Gerichtet") else "steward-card-wrapper"
+                    
+                    # --- START DES GRAUEN RECHTECKS ---
+                    st.markdown(f"""
+                    <div class="{card_class}">
+                        <div class="card-header-row">
+                            <span class="card-cat-number">Nr. {nr}</span>
+                            <span class="card-meta-main">{get_full_label(row)}</span>
+                        </div>
+                        <div class="grid-container">
+                            <span class="card-meta-sub"><span class="meta-label">Klasse:</span> {klasse}</span>
+                            <span class="card-meta-sub"><span class="meta-label">Farbgruppe:</span> {farbgruppe}</span>
+                            <span class="card-meta-sub"><span class="meta-label">Geschlecht:</span> {geschlecht}</span>
+                            <span class="card-meta-sub"><span class="meta-label">Geboren:</span> {geb_datum}</span>
+                        </div>
+                        <div style="border-top: 1px solid #e2e2e2; padding-top: 10px; margin-top: 12px; margin-bottom: 8px;"></div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Die originalen Spalten für die Buttons
+                    c1, c2, c3, c4 = st.columns(4, vertical_alignment="center")
+                    
+                    # BUTTON 1: AUFRUFEN (Blau)
+                    is_rich = flags.get("Zum Richten")
+                    with c1:
+                        if is_rich: st.markdown('<div class="st-blink-btn">', unsafe_allow_html=True)
+                        if st.button("⚠️ [ AKTIV ] AUFGERUFEN ⚠️" if is_rich else "AUFRUFEN", key=f"btn_rich_{k}"):
+                            store.data[k]["flags"]["Zum Richten"] = not is_rich
+                            if store.data[k]["flags"]["Zum Richten"]:
+                                store.data[k]["flags"]["Gerichtet"] = False
+                                store.data[k]["timestamp"] = time.time()
+                            st.rerun()
+                        if is_rich: st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # BUTTON 2: BIV (Grün)
+                    is_biv = flags.get("BIV")
+                    with c2:
+                        if is_biv: st.markdown('<div class="st-blink-btn">', unsafe_allow_html=True)
+                        if st.button("⚠️ [ AKTIV ] BIV ⚠️" if is_biv else "BIV", key=f"btn_biv_{k}"):
+                            store.data[k]["flags"]["BIV"] = not is_biv
+                            store.data[k]["timestamp"] = time.time()
+                            st.rerun()
+                        if is_biv: st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # BUTTON 3: NOMINIEREN (Gelb)
+                    is_nom = flags.get("NOM")
+                    with c3:
+                        if is_nom: st.markdown('<div class="st-blink-btn">', unsafe_allow_html=True)
+                        if st.button("⚠️ [ AKTIV ] NOM ⚠️" if is_nom else "NOM", key=f"btn_nom_{k}"):
+                            store.data[k]["flags"]["NOM"] = not is_nom
+                            if store.data[k]["flags"]["NOM"]:
+                                store.data[k]["timestamp"] = time.time()
+                            st.rerun()
+                        if is_nom: st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # BUTTON 4: GERICHTET (Grau)
+                    is_done = flags.get("Gerichtet")
+                    with c4:
+                        if st.button("[ ERLEDIGT ] GERICHTET" if is_done else "GERICHTET", key=f"btn_done_{k}"):
+                            if not is_done:
+                                store.data[k]["flags"]["Zum Richten"] = False
+                                store.data[k]["flags"]["Gerichtet"] = True
+                            else:
+                                store.data[k]["flags"]["Gerichtet"] = False
+                            st.rerun()
+                                    
+                    # --- ENDE DES GRAUEN RECHTECKS ---
+                    st.markdown("</div>", unsafe_allow_html=True)
+                    
+                    # Trennlinie zur nächsten Karte
+                    st.markdown('<hr style="border: none; border-top: 2px solid #000; margin-top: 0px; margin-bottom: 30px;">', unsafe_allow_html=True)
 
-                
-                # Die originalen Spalten für die Buttons
-                c1, c2, c3, c4 = st.columns(4, vertical_alignment="center")
-                
-                # BUTTON 1: AUFRUFEN (Blau)
-                is_rich = flags.get("Zum Richten")
-                with c1:
-                    # Hier nutzen wir nun auch die blinkende Klasse, wenn aktiv
-                    if is_rich: st.markdown('<div class="st-blink-btn">', unsafe_allow_html=True)
-                    if st.button("⚠️ [ AKTIV ] AUFGERUFEN ⚠️" if is_rich else "AUFRUFEN", key=f"btn_rich_{k}"):
-                        store.data[k]["flags"]["Zum Richten"] = not is_rich
-                        if store.data[k]["flags"]["Zum Richten"]:
-                            store.data[k]["flags"]["Gerichtet"] = False
-                            store.data[k]["timestamp"] = time.time()
-                        st.rerun()
-                    if is_rich: st.markdown('</div>', unsafe_allow_html=True)
-                
-                # BUTTON 2: BIV (Grün)
-                is_biv = flags.get("BIV")
-                with c2:
-                    if is_biv: st.markdown('<div class="st-blink-btn">', unsafe_allow_html=True)
-                    if st.button("⚠️ [ AKTIV ] BIV ⚠️" if is_biv else "BIV", key=f"btn_biv_{k}"):
-                        store.data[k]["flags"]["BIV"] = not is_biv
-                        store.data[k]["timestamp"] = time.time()
-                        st.rerun()
-                    if is_biv: st.markdown('</div>', unsafe_allow_html=True)
-                
-                # BUTTON 3: NOMINIEREN (Gelb)
-                is_nom = flags.get("NOM")
-                with c3:
-                    if is_nom: st.markdown('<div class="st-blink-btn">', unsafe_allow_html=True)
-                    if st.button("⚠️ [ AKTIV ] NOM ⚠️" if is_nom else "NOM", key=f"btn_nom_{k}"):
-                        store.data[k]["flags"]["NOM"] = not is_nom
-                        if store.data[k]["flags"]["NOM"]:
-                            store.data[k]["timestamp"] = time.time()
-                        st.rerun()
-                    if is_nom: st.markdown('</div>', unsafe_allow_html=True)
-                
-                # BUTTON 4: GERICHTET (Grau - bleibt stabil ohne Blinken)
-                is_done = flags.get("Gerichtet")
-                with c4:
-                    if st.button("[ ERLEDIGT ] GERICHTET" if is_done else "GERICHTET", key=f"btn_done_{k}"):
-                        if not is_done:
-                            store.data[k]["flags"]["Zum Richten"] = False
-                            store.data[k]["flags"]["Gerichtet"] = True
-                        else:
-                            store.data[k]["flags"]["Gerichtet"] = False
-                        st.rerun()
-                                
-                # --- ENDE DES GRAUEN RECHTECKS ---
-                # Erst nachdem die Buttons gerendert wurden, schließen wir das umschließende HTML-Kasten-Div.
-                st.markdown("</div>", unsafe_allow_html=True)
-                
-                   # Zieht eine saubere Linie und schafft 30px Platz zur nächsten Karte
-                st.markdown('<hr style="border: none; border-top: 2px solid #000; margin-top: 0px; margin-bottom: 30px;">', unsafe_allow_html=True)
 
 # JUDGE VOTING
 elif st.session_state.view == "Judge_Voting":
