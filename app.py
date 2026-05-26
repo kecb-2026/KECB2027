@@ -419,7 +419,7 @@ def roman_to_numeric(text):
 @st.cache_data(ttl=1)
 def load_labels():
     try:
-        df = pd.read_excel("LABELS.xlsx", engine='openpyxl', header=0)
+        df = pd.read_excel("2027.xlsx", engine='openpyxl', header=0)
         df.columns = [str(c).strip().upper() for c in df.columns]
         df = df.fillna("-")
         df['KLASSE_INTERNAL'] = df['AUSSTELLUNGSKLASSE'] if 'AUSSTELLUNGSKLASSE' in df.columns else df.get('KLASSE', '')
