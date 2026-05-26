@@ -1453,11 +1453,21 @@ elif st.session_state.view == "QR_Codes":
     if st.button("⬅️ Zurück zum Hauptmenü", key="back_from_qrcode"):
         st.session_state.view = "Home"
         st.rerun()
+
+
+
+		
 # --- NEUER MENÜPUNKT: NOMINIERTE KATZEN ---
 elif st.session_state.view == "Nominated_Cats":
     display_header_with_logo("🏅 Nominierte Katzen (Admin-Zentrale)")
     
     df_full = load_labels()
+
+	# --- DIAGNOSE-BLOCK ---
+if df_full is not None:
+    st.write("Vorhandene Spalten im Datensatz:")
+    st.write(df_full.columns.tolist()) 
+# ----------------------
     
     if df_full is not None:
         # --- SHOW-AUSWAHL ---
