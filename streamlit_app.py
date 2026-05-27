@@ -895,11 +895,8 @@ elif st.session_state.view == "BIS_Public":
             ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")
         ]
         
-        # DAS IST DIE KORREKTE VERSION:
-		# Wir müssen hier die 'ziel_spalte' verwenden (z.B. "SELECTION A"), 
-		# da diese die 'X' für die Teilnahme enthält.
-		judges = sorted([r for r in df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
-
+        judges = sorted([r for r in df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
+		
         # --- CSS-LOGIK ---
         style_rules = ""
         for label, klassen, geschl in bis_defs:
