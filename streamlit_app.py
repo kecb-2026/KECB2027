@@ -1226,50 +1226,70 @@ elif st.session_state.view == "Steward_Panel":
                     st.markdown('<hr style="border: none; border-top: 2px solid #000; margin-top: 0px; margin-bottom: 30px;">', unsafe_allow_html=True)
 
 
-# JUDGE VOTING
+# --- JUDGE VOTING ---
 elif st.session_state.view == "Judge_Voting":
     display_header_with_logo("🗳️ Richter Abstimmung/Judges Votes")
     df_full = load_labels()
+    
     if df_full is not None:
-        url_day = st.query_params.get("day", "1")
-        day_idx = 1 if url_day == "2" else 0
-        tag = st.sidebar.radio("Tag:", ["Tag 1", "Tag 2"], index=day_idx, key="judge_day_selector").upper()
-        r_col = f"RICHTER {tag}"
-        all_judges = sorted([r for r in df_full[r_col].unique() if str(r) != "nan"])
+        # 1. SHOW-AUSWAHL statt TAG 1/2
+        show_wahl = st.sidebar.radio("Wähle die Show:", ["Show A", "Show B", "Show C"], key="judge_show_selector")
+        
+        # Mapping der entsprechenden Spalten
+        r_col = f"RICHTER {show_wahl.upper().replace('SHOW ', '')}"
+        ziel_spalte = f"SELECTION {show_wahl.upper().replace('SHOW ', '')}"
+        
+        all_judges = sorted([r for r in df_full[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
         
         c1, c2 = st.columns(2)
         
-                # PRÜFUNG: Wurde ein Richter in der URL mitgegeben? (Ignorieren, wenn Admin am Werk ist)
+        # Richter Identifikation
         url_judge_name = st.session_state.get("url_judge", "--")
-        
         if url_judge_name in all_judges and st.session_state.user_role != "Admin":
-            # Fixierung NUR für echte Richter-Direktlinks
             active_j = url_judge_name
             c1.markdown(f"<div style='padding-top:25px;'><b>Eingeloggt als Richter:</b> <span style='color:#1a4a9e; font-size:18px;'>{active_j}</span></div>", unsafe_allow_html=True)
         else:
-            # Admins (oder wenn kein Richter in URL steht) sehen immer die volle Auswahlbox!
             active_j = c1.selectbox("Identität/Identity:", ["--"] + all_judges)
 
         active_cat = c2.selectbox("Kategorie/Category:", sorted(df_full['KATEGORIE'].unique()))
         
-        # ... ab hier läuft dein originaler Code für das Voting unverändert weiter ...
-
         if active_j != "--":
             if "votes" not in store.data: store.data["votes"] = {}
-            bis_defs = [("Adult Male", [1,3,5,7,9], "M"), ("Adult Female", [1,3,5,7,9], "W"), ("Neuter Male", [2,4,6,8,10], "M"), ("Neuter Female", [2,4,6,8,10], "W"), ("Junior 8-12 Male", [11], "M"), ("Junior 8-12 Female", [11], "W"), ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")]
+            
+            bis_defs = [
+                ("Adult Male", [1,3,5,7,9], "M"), ("Adult Female", [1,3,5,7,9], "W"), 
+                ("Neuter Male", [2,4,6,8,10], "M"), ("Neuter Female", [2,4,6,8,10], "W"), 
+                ("Junior 8-12 Male", [11], "M"), ("Junior 8-12 Female", [11], "W"), 
+                ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")
+            ]
+            
             for label, klassen, geschl in bis_defs:
                 with st.expander(f"Wahl für/Choice for {label}"):
-                    pool = df_full[(df_full['SELECTION'].astype(str).str.upper() == 'X') & (df_full['KATEGORIE'] == active_cat) & (df_full['KLASSE_INTERNAL'].isin(klassen)) & (df_full['GESCHLECHT'].astype(str).str.upper() == geschl)]
+                    # Filterung auf die korrekte Show-Spalte (SELECTION A/B/C)
+                    pool = df_full[(df_full[ziel_spalte].astype(str).str.upper() == 'X') & 
+                                   (df_full['KATEGORIE'] == active_cat) & 
+                                   (df_full['KLASSE_INTERNAL'].isin(klassen)) & 
+                                   (df_full['GESCHLECHT'].astype(str).str.upper() == geschl)]
+                    
                     if not pool.empty:
                         opts = {f"#{r['KAT_STR']} - {get_full_label(r)}": r['KAT_STR'] for _, r in pool.iterrows()}
-                        v_key = f"v_{active_cat}_{label}_{active_j}"
-                        curr = store.data["votes"].get(v_key, "Keine Wahl")
-                        sel = st.radio("Favorit:", ["Keine Wahl/Not chosen yet"] + list(opts.keys()), index=(list(opts.values()).index(curr)+1) if curr in opts.values() else 0, key=f"r_{v_key}")
+                        
+                        # KEY ENTHÄLT JETZT 'show_wahl' ZUR TRENNUNG DER STIMMEN
+                        v_key = f"v_{show_wahl}_{active_cat}_{label}_{active_j}"
+                        curr = store.data["votes"].get(v_key, "Keine Wahl/Not chosen yet")
+                        
+                        sel = st.radio(
+                            "Favorit:", 
+                            ["Keine Wahl/Not chosen yet"] + list(opts.keys()), 
+                            index=(list(opts.values()).index(curr)+1) if curr in opts.values() else 0, 
+                            key=f"r_{v_key}"
+                        )
+                        
                         store.data["votes"][v_key] = opts[sel] if sel != "Keine Wahl/Not chosen yet" else "Keine Wahl/Not chosen yet"
+                    else:
+                        st.info("Keine nominierten Katzen für diese Klasse gefunden.")
 
-
-
-
+						
 # --- NEUER MENÜPUNKT: QR CODES ---
 elif st.session_state.view == "QR_Codes":
     display_header_with_logo("📱 QR-Code Login Zentrale")
