@@ -845,8 +845,7 @@ elif st.session_state.view == "BIS_Admin_Control":
 
 
 # BIS PUBLIC VIEW
-# BIS PUBLIC VIEW NEW
-# BIS PUBLIC VIEW NEW
+# --- BIS PUBLIC VIEW NEW ---
 elif st.session_state.view == "BIS_Public":
     if hasattr(store, 'active_overlay') and store.active_overlay:
         if time.time() - store.overlay_start_time < 20:
@@ -865,24 +864,28 @@ elif st.session_state.view == "BIS_Public":
     
     if df_full is not None:
         # --- STABILE WIDGET-INITIALISIERUNG ---
-        # Holt den exakten Zustand vor dem Rerun ab, damit nichts zurückspringt
-        current_tag = st.session_state.get('bis_stable_tag', 'TAG 1')
+        current_show = st.session_state.get('bis_stable_show', 'Show A')
         available_cats = sorted(df_full['KATEGORIE'].unique())
         current_cat = st.session_state.get('bis_stable_cat', available_cats[0])
 
-        # Indices berechnen (Fallback auf 0, falls Werte beim Datenladen variieren)
-        tag_index = ["TAG 1", "TAG 2"].index(current_tag) if current_tag in ["TAG 1", "TAG 2"] else 0
+        show_options = ["Show A", "Show B", "Show C"]
+        show_index = show_options.index(current_show) if current_show in show_options else 0
         cat_index = available_cats.index(current_cat) if current_cat in available_cats else 0
 
-        # Widgets erzwingen den Zustand über den Index
-        tag_selection = st.sidebar.radio("Tag:", ["Tag 1", "Tag 2"], index=tag_index)
-        tag = tag_selection.upper()
+        show_selection = st.sidebar.radio("Show:", show_options, index=show_index)
         sel_cat = st.selectbox("Kategorie:", available_cats, index=cat_index)
         
-        # Zustand sofort für den nächsten Durchlauf einfrieren
-        st.session_state['bis_stable_tag'] = tag
+        st.session_state['bis_stable_show'] = show_selection
         st.session_state['bis_stable_cat'] = sel_cat
         # --------------------------------------
+
+        # Mapping für Spalten
+        spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
+        show_col = show_selection.upper().replace(" ", "") # Entspricht den Spalten im DF: SHOWA, SHOWB, SHOWC (bitte prüfen)
+        # Wenn im DF die Spalte exakt "SHOW A" heißt, nimm das:
+        richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
+        ziel_spalte = spalten_map[show_selection]
+        r_col = richter_map[show_selection]
 
         bis_defs = [
             ("Adult Male", [1,3,5,7,9], "M"), ("Adult Female", [1,3,5,7,9], "W"), 
@@ -891,14 +894,13 @@ elif st.session_state.view == "BIS_Public":
             ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")
         ]
         
-        r_col = f"RICHTER {tag}"
-        judges = sorted([r for r in df_full[df_full[tag].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
+        judges = sorted([r for r in df_full[df_full[show_selection] == 'X'][r_col].unique() if str(r) != "nan"])
 
-        # --- CSS-LOGIK FÜR GRÜNE RICHTER IM HEADER ---
+        # --- CSS-LOGIK ---
         style_rules = ""
         for label, klassen, geschl in bis_defs:
-            if not store.data.get(f"winner_reveal_{sel_cat}_{label}", False):
-                prefix = f"v_{sel_cat}_{label}_"
+            if not store.data.get(f"winner_reveal_{show_selection}_{sel_cat}_{label}", False):
+                prefix = f"v_{show_selection}_{sel_cat}_{label}_"
                 abgestimmte = [key.replace(prefix, "") for key, val in store.data.get("votes", {}).items() 
                                if key.startswith(prefix) and val != "Keine Wahl" and val != "Keine Wahl/Not chosen yet"]
                 for j in abgestimmte:
@@ -907,7 +909,7 @@ elif st.session_state.view == "BIS_Public":
         if style_rules:
             st.markdown(f"<style>{style_rules}</style>", unsafe_allow_html=True)
 
-        # --- STATISCHER HEADER (oben, einmalig) ---
+        # --- STATISCHER HEADER ---
         cols = st.columns([0.8] + [1.2]*len(judges) + [0.8])
         cols[0].empty()
         for i, j in enumerate(judges):
@@ -920,18 +922,18 @@ elif st.session_state.view == "BIS_Public":
             r_cols = st.columns([0.8] + [1.2]*len(judges) + [0.8])
             r_cols[0].markdown(f"<div class='class-label-box'>{label}</div>", unsafe_allow_html=True)
             
-            show_noms = store.data.get(f"reveal_{sel_cat}_{label}", False)
-            winner_revealed = store.data.get(f"winner_reveal_{sel_cat}_{label}", False)
+            show_noms = store.data.get(f"reveal_{show_selection}_{sel_cat}_{label}", False)
+            winner_revealed = store.data.get(f"winner_reveal_{show_selection}_{sel_cat}_{label}", False)
             
             for i, j in enumerate(judges):
                 with r_cols[i+1]:
                     if show_noms:
-                        m = df_full[(df_full['SELECTION'].astype(str).str.upper() == 'X') & (df_full[r_col] == j) & (df_full['KATEGORIE'] == sel_cat) & (df_full['KLASSE_INTERNAL'].isin(klassen)) & (df_full['GESCHLECHT'].astype(str).str.upper() == geschl)]
+                        m = df_full[(df_full[ziel_spalte].astype(str).str.upper() == 'X') & (df_full[r_col] == j) & (df_full['KATEGORIE'] == sel_cat) & (df_full['KLASSE_INTERNAL'].isin(klassen)) & (df_full['GESCHLECHT'].astype(str).str.upper() == geschl)]
                         if not m.empty:
                             kat_nr = m.iloc[0]['KAT_STR']
                             circles_html = ""
                             if winner_revealed:
-                                prefix = f"v_{sel_cat}_{label}_"
+                                prefix = f"v_{show_selection}_{sel_cat}_{label}_"
                                 all_votes = store.data.get("votes", {})
                                 voters = [v_key.replace(prefix, "") for v_key, v_val in all_votes.items() if v_key.startswith(prefix) and str(v_val) == str(kat_nr)]
                                 if voters:
@@ -944,8 +946,8 @@ elif st.session_state.view == "BIS_Public":
             
             with r_cols[-1]:
                 if winner_revealed:
-                    prefix = f"v_{sel_cat}_{label}_"
-                    winner_nr = store.data.get(f"override_{sel_cat}_{label}", "Automatisch (Stimmen)")
+                    prefix = f"v_{show_selection}_{sel_cat}_{label}_"
+                    winner_nr = store.data.get(f"override_{show_selection}_{sel_cat}_{label}", "Automatisch (Stimmen)")
                     if winner_nr == "Automatisch (Stimmen)" and "votes" in store.data:
                         vts = [v for k, v in store.data["votes"].items() if k.startswith(prefix) and v != "Keine Wahl"]
                         if vts: winner_nr = pd.Series(vts).value_counts().index[0]
