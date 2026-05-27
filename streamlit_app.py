@@ -845,7 +845,7 @@ elif st.session_state.view == "BIS_Admin_Control":
 
 
 # BIS PUBLIC VIEW
-# --- BIS PUBLIC VIEW NEW ---
+# --- BIS PUBLIC VIEW NEW (SHOW-VERSION) ---
 elif st.session_state.view == "BIS_Public":
     if hasattr(store, 'active_overlay') and store.active_overlay:
         if time.time() - store.overlay_start_time < 20:
@@ -863,7 +863,7 @@ elif st.session_state.view == "BIS_Public":
     df_full = load_labels()
     
     if df_full is not None:
-        # --- STABILE WIDGET-INITIALISIERUNG ---
+        # --- SHOW-INITIALISIERUNG ---
         current_show = st.session_state.get('bis_stable_show', 'Show A')
         available_cats = sorted(df_full['KATEGORIE'].unique())
         current_cat = st.session_state.get('bis_stable_cat', available_cats[0])
@@ -879,12 +879,10 @@ elif st.session_state.view == "BIS_Public":
         st.session_state['bis_stable_cat'] = sel_cat
         # --------------------------------------
 
-        # Mapping für Spalten
+        # Mappings für Show
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
-        show_col = show_selection.upper().replace(" ", "") # Entspricht den Spalten im DF: SHOWA, SHOWB, SHOWC (bitte prüfen)
-		
-        # Wenn im DF die Spalte exakt "SHOW A" heißt, nimm das:
         richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
+        
         ziel_spalte = spalten_map[show_selection]
         r_col = richter_map[show_selection]
 
@@ -896,7 +894,7 @@ elif st.session_state.view == "BIS_Public":
         ]
         
         judges = sorted([r for r in df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
-		
+
         # --- CSS-LOGIK ---
         style_rules = ""
         for label, klassen, geschl in bis_defs:
@@ -910,30 +908,22 @@ elif st.session_state.view == "BIS_Public":
         if style_rules:
             st.markdown(f"<style>{style_rules}</style>", unsafe_allow_html=True)
 
-      # --- STATISCHER HEADER & ZEILEN (SYNCHRONISIERT) ---
-        num_judges = len(judges)
-        # Definition der Spaltenbreiten (1 für Label, 1.2 pro Richter, 1 für BIS-Spalte)
-        col_specs = [1.0] + [1.2] * num_judges + [1.0]
-
-        # --- HEADER ---
-        header_cols = st.columns(col_specs)
-        # header_cols[0] bleibt leer für die Ausrichtung der Labels
+        # --- STATISCHER HEADER (Exakte Kopie der Layout-Logik) ---
+        cols = st.columns([0.8] + [1.2]*len(judges) + [0.8])
+        cols[0].empty()
         for i, j in enumerate(judges):
             clean_id = str(j).replace(" ", "_")
-            header_cols[i+1].markdown(f"<div class='judge-header-box judge-{clean_id}'>{j}</div>", unsafe_allow_html=True)
-        header_cols[-1].markdown("<div class='judge-header-box' style='background-color:#b21f2d;'>BIS</div>", unsafe_allow_html=True)
+            cols[i+1].markdown(f"<div class='judge-header-box judge-{clean_id}'>{j}</div>", unsafe_allow_html=True)
+        cols[-1].markdown("<div class='judge-header-box' style='background-color:#b21f2d;'>BIS</div>", unsafe_allow_html=True)
 
-        # --- KATZEN-ZEILEN ---
+        # --- KATZEN-ZEILEN (Exakte Kopie der Layout-Logik) ---
         for label, klassen, geschl in bis_defs:
-            r_cols = st.columns(col_specs) # Hier nutzen wir exakt das gleiche Schema!
-            
-            # Label in der ersten Spalte
+            r_cols = st.columns([0.8] + [1.2]*len(judges) + [0.8])
             r_cols[0].markdown(f"<div class='class-label-box'>{label}</div>", unsafe_allow_html=True)
             
             show_noms = store.data.get(f"reveal_{show_selection}_{sel_cat}_{label}", False)
             winner_revealed = store.data.get(f"winner_reveal_{show_selection}_{sel_cat}_{label}", False)
             
-            # Richter-Daten
             for i, j in enumerate(judges):
                 with r_cols[i+1]:
                     if show_noms:
@@ -953,7 +943,6 @@ elif st.session_state.view == "BIS_Public":
                         else: st.markdown("<div class='placeholder-box'>–</div>", unsafe_allow_html=True)
                     else: st.markdown("<div class='placeholder-box'>🔒</div>", unsafe_allow_html=True)
             
-            # BIS-Spalte ganz rechts
             with r_cols[-1]:
                 if winner_revealed:
                     prefix = f"v_{show_selection}_{sel_cat}_{label}_"
@@ -965,7 +954,7 @@ elif st.session_state.view == "BIS_Public":
                         m_w = df_full[df_full['KAT_STR'] == str(winner_nr)]
                         if not m_w.empty: st.markdown(f"<div class='cat-card winner-card'><div class='cat-number'>{winner_nr}</div><div class='cat-details'>{get_full_label(m_w.iloc[0])}</div></div>", unsafe_allow_html=True)
                 else: st.markdown("<div class='placeholder-box'>🔒</div>", unsafe_allow_html=True)
-					
+
     time.sleep(3); st.rerun()
     
 # LIVE DASHBOARD
