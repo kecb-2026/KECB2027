@@ -1009,7 +1009,7 @@ elif st.session_state.view == "Dashboard":
         else:
             judges = []
         
-                if judges:
+            if judges:
             cols = st.columns(len(judges))
             for i, j in enumerate(judges):
                 with cols[i]:
