@@ -557,17 +557,28 @@ st.sidebar.image(LOGO_URL, width=150)
 # --- 5. NAVIGATION & ZUGRIFF ---
 # ... (dein restlicher Code wie access_map etc.) ...
 
-# Temporäre Auswahl in der Sidebar
+# --- 5. NAVIGATION ---
+# Wir holen die aktuelle View aus dem State
+current_view = st.session_state.view
+
+# Sidebar-Auswahl
+# Wir verwenden den Index basierend auf dem aktuellen State
+menu_index = 0
+if current_view in available_views:
+    menu_index = available_views.index(current_view)
+
 new_view = st.sidebar.radio(
     "Menü:", 
     available_views, 
-    index=available_views.index(st.session_state.view) if st.session_state.view in available_views else 0,
+    index=menu_index,
     format_func=lambda x: x.replace("_", " ")
 )
 
-# Nur wenn der Nutzer aktiv etwas anderes in der Sidebar geklickt hat, führen wir den Wechsel aus
-if new_view != st.session_state.view:
-    set_view(new_view)
+# WICHTIG: Nur wenn sich die Auswahl in der Sidebar wirklich geändert hat, 
+# führen wir den View-Wechsel aus.
+if new_view != current_view:
+    st.session_state.view = new_view
+    st.rerun() # Das zwingt die App dazu, die neue Seite sofort zu rendern
     
 if st.session_state.view != "BIS_Public":
     store.active_overlay = None	
