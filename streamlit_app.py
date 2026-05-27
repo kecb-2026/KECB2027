@@ -1003,7 +1003,7 @@ elif st.session_state.view == "Dashboard":
         # 2. Filtern nach den im Admin-Bereich freigegebenen Kategorien
         df_tag = df_tag[df_tag['KATEGORIE'].astype(str).isin(allowed_categories)]
         
-        # Holt die Richter aus der korrekten, zur Show passenden Spalte
+                # Holt die Richter aus der korrekten, zur Show passenden Spalte
         if r_col in df_tag.columns:
             judges = sorted([r for r in df_tag[r_col].unique() if str(r).strip() != ""])
         else:
@@ -1017,16 +1017,14 @@ elif st.session_state.view == "Dashboard":
                     
                     judge_entries = []
                     for k, v in store.data.items():
-                        if "|" in k and k.split("|")[1] == j:
+                        if "|" in k:
                             flags = v.get("flags", {}) if isinstance(v, dict) else {}
                             beim_richten = flags.get("Zum Richten", False) and not flags.get("Gerichtet", False)
                             nominiert = flags.get("NOM", False)
                             biv = flags.get("BIV", False)
                             
                             if beim_richten or nominiert or biv:
-                                
-                                
-                                
+                                kat_nr = k.split("|")[0]
                                 
                                 # KORREKTUR: Existiert die Katze in DIESER Show bei DIESEM Richter (j)?
                                 m = df_tag[(df_tag['KAT_STR'] == kat_nr) & (df_tag[r_col] == j)]
@@ -1047,22 +1045,20 @@ elif st.session_state.view == "Dashboard":
                         cat_row = entry["row"]  # Holt die gemerkte Zeile
                         
                         tags = "".join([f"<span class='tag tag-{t.lower().replace(' ', '')}'>{t}</span> " for t, val in flags.items() if val and t != "Gerichtet"])
-                            
-                            
-                            
-                            
-                             if tags: 
-                                st.markdown(f"""
-                                    <div class='cat-card'>
-                                        <div class='cat-number'>{kat_nr}</div>
-                                        <div class='cat-details'>{get_full_label(m.iloc[0])}</div>
-                                        <div class='tag-container'>{tags}</div>
-                                    </div>
-                                """, unsafe_allow_html=True)
+                        
+                        if tags: 
+                            st.markdown(f"""
+                                <div class='cat-card'>
+                                    <div class='cat-number'>{kat_nr}</div>
+                                    <div class='cat-details'>{get_full_label(cat_row)}</div>
+                                    <div class='tag-container'>{tags}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
         else:
             st.info("Aktuell keine aktiven Richter oder keine Katzen für diese Auswahl aufgerufen.")
                         
     st_autorefresh(interval=10000, key="dash_refresh")
+
 
 # --- CORRECTIONS ONLY IN THE STEWARD PANEL ---# --- CORRECTIONS ONLY IN THE STEWARD PANEL ---
 elif st.session_state.view == "Steward_Panel":
