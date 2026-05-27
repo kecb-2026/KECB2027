@@ -1232,7 +1232,7 @@ elif st.session_state.view == "Judge_Voting":
     df_full = load_labels()
     
     if df_full is not None:
-      # 1. SHOW-AUSWAHL
+          # 1. SHOW-AUSWAHL GANZ OBEN (Primärfilter)
         show_wahl = st.sidebar.radio("Wähle die Show:", ["Show A", "Show B", "Show C"], key="judge_show_selector")
         
         # KORREKTES MAPPING wie in den anderen Funktionen:
