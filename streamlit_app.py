@@ -1595,12 +1595,17 @@ elif st.session_state.view == "Nominated_Cats":
                 }
                 wahl_sortierung = st.selectbox("Primär sortieren nach:", list(sort_options.keys()))
             
-            # --- FILTER & SORTIER LOGIK ---
-            if wahl_richter != "Alle Richter": df_nom_display = df_nom_display[df_nom_display['Richter'] == wahl_richter]
-            if wahl_kategorie != "Alle Kategorien": df_nom_display = df_nom_display[df_nom_display['Kategorie'] == wahl_kategorie]
-            if wahl_klasse != "Alle Klassen": df_nom_display = df_nom_display[df_nom_display['Klasse'] == wahl_klasse]
-            if wahl_geschlecht != "Alle Geschlechter": df_nom_display = df_nom_display[df_nom_display['Geschlecht'] == wahl_geschlecht]
-                
+                      # --- FILTER & SORTIER LOGIK ---
+            if wahl_richter != "Alle Richter": 
+                df_nom_display = df_nom_display[df_nom_display['Richter'].astype(str).str.strip() == wahl_richter.strip()]
+            if wahl_kategorie != "Alle Kategorien": 
+                df_nom_display = df_nom_display[df_nom_display['Kategorie'].astype(str).str.strip() == wahl_kategorie.strip()]
+            if wahl_klasse != "Alle Klassen": 
+                df_nom_display = df_nom_display[df_nom_display['Klasse'].astype(str).str.strip() == wahl_klasse.strip()]
+            if wahl_geschlecht != "Alle Geschlechter": 
+                df_nom_display = df_nom_display[df_nom_display['Geschlecht'].astype(str).str.strip() == wahl_geschlecht.strip()]
+
+				
             if wahl_sortierung == "Katalog-Nr.":
                 df_nom_display = df_nom_display.sort_values(by="Katalog-Nr.", key=lambda x: pd.to_numeric(x, errors='coerce'))
             else:
