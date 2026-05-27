@@ -561,24 +561,20 @@ st.sidebar.image(LOGO_URL, width=150)
 # Wir holen die aktuelle View aus dem State
 current_view = st.session_state.view
 
-# Sidebar-Auswahl
-# Wir verwenden den Index basierend auf dem aktuellen State
-menu_index = 0
-if current_view in available_views:
-    menu_index = available_views.index(current_view)
-
-new_view = st.sidebar.radio(
+# HIER WURDE format_func HINZUGEFÜGT: Tauscht bei der Anzeige die Unterstriche gegen Leerzeichen
+st.session_state.view = st.sidebar.radio(
     "Menü:", 
     available_views, 
-    index=menu_index,
+    index=available_views.index(st.session_state.view) if st.session_state.view in available_views else 0,
     format_func=lambda x: x.replace("_", " ")
 )
+if st.session_state.view != "BIS_Public":
+    store.active_overlay = None	
 
-# WICHTIG: Nur wenn sich die Auswahl in der Sidebar wirklich geändert hat, 
-# führen wir den View-Wechsel aus.
-if new_view != current_view:
-    st.session_state.view = new_view
-    st.rerun() # Das zwingt die App dazu, die neue Seite sofort zu rendern
+if st.session_state.authenticated:
+    if st.sidebar.button("Abmelden"): logout()
+elif st.session_state.view != "Login":
+    if st.sidebar.button("🔒 Interner Login"): set_view("Login")
     
 if st.session_state.view != "BIS_Public":
     store.active_overlay = None	
