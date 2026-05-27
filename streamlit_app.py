@@ -554,13 +554,6 @@ st.markdown("""
 available_views = access_map.get(st.session_state.user_role, ["Dashboard"])
 st.sidebar.image(LOGO_URL, width=150)
 
-# --- 5. NAVIGATION & ZUGRIFF ---
-# ... (dein restlicher Code wie access_map etc.) ...
-
-# --- 5. NAVIGATION ---
-# Wir holen die aktuelle View aus dem State
-current_view = st.session_state.view
-
 # HIER WURDE format_func HINZUGEFÜGT: Tauscht bei der Anzeige die Unterstriche gegen Leerzeichen
 st.session_state.view = st.sidebar.radio(
     "Menü:", 
@@ -568,14 +561,6 @@ st.session_state.view = st.sidebar.radio(
     index=available_views.index(st.session_state.view) if st.session_state.view in available_views else 0,
     format_func=lambda x: x.replace("_", " ")
 )
-if st.session_state.view != "BIS_Public":
-    store.active_overlay = None	
-
-if st.session_state.authenticated:
-    if st.sidebar.button("Abmelden"): logout()
-elif st.session_state.view != "Login":
-    if st.sidebar.button("🔒 Interner Login"): set_view("Login")
-    
 if st.session_state.view != "BIS_Public":
     store.active_overlay = None	
 
