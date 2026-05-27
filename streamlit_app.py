@@ -1232,12 +1232,16 @@ elif st.session_state.view == "Judge_Voting":
     df_full = load_labels()
     
     if df_full is not None:
-        # 1. SHOW-AUSWAHL statt TAG 1/2
+      # 1. SHOW-AUSWAHL
         show_wahl = st.sidebar.radio("Wähle die Show:", ["Show A", "Show B", "Show C"], key="judge_show_selector")
         
-        # Mapping der entsprechenden Spalten
-        r_col = f"RICHTER {show_wahl.upper().replace('SHOW ', '')}"
-        ziel_spalte = f"SELECTION {show_wahl.upper().replace('SHOW ', '')}"
+        # KORREKTES MAPPING wie in den anderen Funktionen:
+        richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
+        r_col = richter_map[show_wahl]
+        
+        spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
+        ziel_spalte = spalten_map[show_wahl]
+		
         
         all_judges = sorted([r for r in df_full[r_col].unique() if str(r) != "nan" and str(r).strip() != ""])
         
