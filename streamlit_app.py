@@ -845,7 +845,7 @@ elif st.session_state.view == "BIS_Admin_Control":
 
 
 # BIS PUBLIC VIEW
-# --- BIS PUBLIC VIEW NEW (SHOW-VERSION) ---
+# --- BIS PUBLIC VIEW NEW ---
 elif st.session_state.view == "BIS_Public":
     if hasattr(store, 'active_overlay') and store.active_overlay:
         if time.time() - store.overlay_start_time < 20:
@@ -863,7 +863,7 @@ elif st.session_state.view == "BIS_Public":
     df_full = load_labels()
     
     if df_full is not None:
-        # --- SHOW-INITIALISIERUNG ---
+        # --- STABILE WIDGET-INITIALISIERUNG ---
         current_show = st.session_state.get('bis_stable_show', 'Show A')
         available_cats = sorted(df_full['KATEGORIE'].unique())
         current_cat = st.session_state.get('bis_stable_cat', available_cats[0])
@@ -879,10 +879,9 @@ elif st.session_state.view == "BIS_Public":
         st.session_state['bis_stable_cat'] = sel_cat
         # --------------------------------------
 
-        # Mappings für Show
+        # Mapping: Show zu Daten-Spalten
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
         richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
-        
         ziel_spalte = spalten_map[show_selection]
         r_col = richter_map[show_selection]
 
@@ -895,7 +894,7 @@ elif st.session_state.view == "BIS_Public":
         
         judges = sorted([r for r in df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
 
-        # --- CSS-LOGIK ---
+        # --- CSS-LOGIK FÜR GRÜNE RICHTER IM HEADER ---
         style_rules = ""
         for label, klassen, geschl in bis_defs:
             if not store.data.get(f"winner_reveal_{show_selection}_{sel_cat}_{label}", False):
@@ -908,7 +907,7 @@ elif st.session_state.view == "BIS_Public":
         if style_rules:
             st.markdown(f"<style>{style_rules}</style>", unsafe_allow_html=True)
 
-        # --- STATISCHER HEADER (Exakte Kopie der Layout-Logik) ---
+        # --- STATISCHER HEADER (Exakt wie dein Original) ---
         cols = st.columns([0.8] + [1.2]*len(judges) + [0.8])
         cols[0].empty()
         for i, j in enumerate(judges):
@@ -916,7 +915,7 @@ elif st.session_state.view == "BIS_Public":
             cols[i+1].markdown(f"<div class='judge-header-box judge-{clean_id}'>{j}</div>", unsafe_allow_html=True)
         cols[-1].markdown("<div class='judge-header-box' style='background-color:#b21f2d;'>BIS</div>", unsafe_allow_html=True)
 
-        # --- KATZEN-ZEILEN (Exakte Kopie der Layout-Logik) ---
+        # --- KATZEN-ZEILEN (Exakt wie dein Original) ---
         for label, klassen, geschl in bis_defs:
             r_cols = st.columns([0.8] + [1.2]*len(judges) + [0.8])
             r_cols[0].markdown(f"<div class='class-label-box'>{label}</div>", unsafe_allow_html=True)
