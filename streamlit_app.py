@@ -554,13 +554,19 @@ st.markdown("""
 available_views = access_map.get(st.session_state.user_role, ["Dashboard"])
 st.sidebar.image(LOGO_URL, width=150)
 
-# HIER WURDE format_func HINZUGEFÜGT: Tauscht bei der Anzeige die Unterstriche gegen Leerzeichen
-st.session_state.view = st.sidebar.radio(
+# Wir definieren eine temporäre Variable 'nav_selection'
+nav_selection = st.sidebar.radio(
     "Menü:", 
     available_views, 
     index=available_views.index(st.session_state.view) if st.session_state.view in available_views else 0,
     format_func=lambda x: x.replace("_", " ")
 )
+
+# Nur wenn die Auswahl der Sidebar anders ist als das, was wir durch die URL-Parameter 
+# bereits im Session State haben, überschreiben wir es.
+if nav_selection != st.session_state.view:
+    st.session_state.view = nav_selection
+    st.rerun() # Sofort neu laden, damit die View auch wirklich wechselt
 if st.session_state.view != "BIS_Public":
     store.active_overlay = None	
 
