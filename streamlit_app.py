@@ -893,7 +893,7 @@ elif st.session_state.view == "BIS_Public":
         ]
         
 		judges = sorted([r for r in df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'][r_col].unique() 
-                 if str(r) != "nan" and str(r).strip() != "" and str(r).lower() != "none"])
+                if str(r) != "nan" and str(r).strip() != "" and str(r).lower() != "none"])
 
         # --- CSS-LOGIK FÜR GRÜNE RICHTER IM HEADER ---
         style_rules = ""
