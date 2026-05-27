@@ -344,7 +344,7 @@ if "auth" in q_params and q_params["auth"] == "true":
     if "view" in q_params:
         v_param = q_params["view"].lower()
         if v_param == "steward_panel": st.session_state.view = "Steward_Panel"
-        elif v_param == "richter": st.session_state.view = "Judge_Voting"
+        elif v_param == "judge": st.session_state.view = "Judge_Voting"
         elif v_param == "admin": st.session_state.view = "Home"
         elif v_param == "bis-admin": st.session_state.view = "BIS_Admin_Control"
         elif v_param == "qr": st.session_state.view = "QR_Codes"
