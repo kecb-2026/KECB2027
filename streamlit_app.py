@@ -349,8 +349,16 @@ if "auth" in q_params and q_params["auth"] == "true":
         elif v_param == "bis-admin": st.session_state.view = "BIS_Admin_Control"
         elif v_param == "qr": st.session_state.view = "QR_Codes"
         elif v_param == "nominated": st.session_state.view = "Nominated_Cats"
+            
+            
+# 2. Day & Show Mapping (Muss vor dem View-Fallback geschehen!)
+if "day" in q_params:
+    day = q_params["day"]
+    if day == "3": st.session_state.aktive_show = "SHOW C"
+    elif day == "2": st.session_state.aktive_show = "SHOW B"
+    elif day == "1": st.session_state.aktive_show = "SHOW A"
 
-# 2. Standard-Fallbacks, falls nichts in der URL steht
+# 3. Standard-Fallbacks, falls nichts in der URL steht
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
 if "user_role" not in st.session_state:
@@ -379,15 +387,7 @@ if "url_judge" in q_params:
 elif "url_judge" not in st.session_state: 
     st.session_state.url_judge = "--"
 
-# Day-Parameter in Show-Mapping umwandeln
-if "day" in q_params:
-    day = q_params["day"]
-    if day == "3":
-        st.session_state.aktive_show = "SHOW C"
-    elif day == "2":
-        st.session_state.aktive_show = "SHOW B"
-    elif day == "1":
-        st.session_state.aktive_show = "SHOW A"
+
 
 def logout():
     st.session_state.authenticated = False
