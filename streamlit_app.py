@@ -374,11 +374,20 @@ if "view" in q_params and not st.session_state.authenticated:
         st.session_state.target_role = v_param
 
 # Richter-Parameter aus der URL sichern, falls übergeben
-if "judge" in q_params: 
-    st.session_state.url_judge = q_params["judge"]
+if "url_judge" in q_params: 
+    st.session_state.url_judge = q_params["url_judge"]
 elif "url_judge" not in st.session_state: 
     st.session_state.url_judge = "--"
 
+# Day-Parameter in Show-Mapping umwandeln
+if "day" in q_params:
+    day = q_params["day"]
+    if day == "3":
+        st.session_state.aktive_show = "SHOW C"
+    elif day == "2":
+        st.session_state.aktive_show = "SHOW B"
+    elif day == "1":
+        st.session_state.aktive_show = "SHOW A"
 
 def logout():
     st.session_state.authenticated = False
