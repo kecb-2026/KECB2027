@@ -1009,7 +1009,7 @@ elif st.session_state.view == "Dashboard":
         else:
             judges = []
         
-        if judges:
+                if judges:
             cols = st.columns(len(judges))
             for i, j in enumerate(judges):
                 with cols[i]:
@@ -1018,31 +1018,35 @@ elif st.session_state.view == "Dashboard":
                     judge_entries = []
                     for k, v in store.data.items():
                         if "|" in k:
-                            flags = v.get("flags", {}) if isinstance(v, dict) else {}
-                            beim_richten = flags.get("Zum Richten", False) and not flags.get("Gerichtet", False)
-                            nominiert = flags.get("NOM", False)
-                            biv = flags.get("BIV", False)
+                            # 1. Wer wurde im Steward Panel aufgerufen?
+                            kat_nr, aufgerufen_fuer_richter = k.split("|")
                             
-                            if beim_richten or nominiert or biv:
-                                kat_nr = k.split("|")[0]
+                            # Nur weitergehen, wenn der Aufruf EXAKT für diesen Richter (j) war!
+                            if aufgerufen_fuer_richter == j:
+                                flags = v.get("flags", {}) if isinstance(v, dict) else {}
+                                beim_richten = flags.get("Zum Richten", False) and not flags.get("Gerichtet", False)
+                                nominiert = flags.get("NOM", False)
+                                biv = flags.get("BIV", False)
                                 
-                                # KORREKTUR: Existiert die Katze in DIESER Show bei DIESEM Richter (j)?
-                                m = df_tag[(df_tag['KAT_STR'] == kat_nr) & (df_tag[r_col] == j)]
-                                
-                                if not m.empty:
-                                    judge_entries.append({
-                                        "key": k, 
-                                        "kat_nr": kat_nr,
-                                        "data": v if isinstance(v, dict) else {"flags": {}},
-                                        "row": m.iloc[0]  # Speichert die Zeile direkt ab
-                                    })
+                                if beim_richten or nominiert or biv:
+                                    # 2. Gegenprüfen: Ist diese Katze in DIESER Show (r_col) auch wirklich bei Richter j?
+                                    m = df_tag[(df_tag['KAT_STR'] == kat_nr) & (df_tag[r_col] == j)]
+                                    
+                                    if not m.empty:
+                                        judge_entries.append({
+                                            "kat_nr": kat_nr,
+                                            "data": v if isinstance(v, dict) else {"flags": {}},
+                                            "row": m.iloc[0]
+                                        })
                     
+                    # Sortieren nach Zeitstempel
                     judge_entries.sort(key=lambda x: x["data"].get("timestamp", 0))
                     
+                    # Karten zeichnen
                     for entry in judge_entries:
                         kat_nr = entry["kat_nr"]
                         flags = entry["data"].get("flags", {})
-                        cat_row = entry["row"]  # Holt die gemerkte Zeile
+                        cat_row = entry["row"]
                         
                         tags = "".join([f"<span class='tag tag-{t.lower().replace(' ', '')}'>{t}</span> " for t, val in flags.items() if val and t != "Gerichtet"])
                         
@@ -1054,6 +1058,7 @@ elif st.session_state.view == "Dashboard":
                                     <div class='tag-container'>{tags}</div>
                                 </div>
                             """, unsafe_allow_html=True)
+
         else:
             st.info("Aktuell keine aktiven Richter oder keine Katzen für diese Auswahl aufgerufen.")
                         
