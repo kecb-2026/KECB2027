@@ -1024,19 +1024,34 @@ elif st.session_state.view == "Dashboard":
                             biv = flags.get("BIV", False)
                             
                             if beim_richten or nominiert or biv:
-                                judge_entries.append({"key": k, "data": v if isinstance(v, dict) else {"flags": {}}})
+                                
+                                
+                                
+                                
+                                # KORREKTUR: Existiert die Katze in DIESER Show bei DIESEM Richter (j)?
+                                m = df_tag[(df_tag['KAT_STR'] == kat_nr) & (df_tag[r_col] == j)]
+                                
+                                if not m.empty:
+                                    judge_entries.append({
+                                        "key": k, 
+                                        "kat_nr": kat_nr,
+                                        "data": v if isinstance(v, dict) else {"flags": {}},
+                                        "row": m.iloc[0]  # Speichert die Zeile direkt ab
+                                    })
                     
                     judge_entries.sort(key=lambda x: x["data"].get("timestamp", 0))
                     
                     for entry in judge_entries:
-                        kat_nr = entry["key"].split("|")[0]
+                        kat_nr = entry["kat_nr"]
                         flags = entry["data"].get("flags", {})
+                        cat_row = entry["row"]  # Holt die gemerkte Zeile
                         
-                        # Findet die Katze im bereits gefilterten Datensatz
-                        m = df_tag[df_tag['KAT_STR'] == kat_nr]
-                        if not m.empty:
-                            tags = "".join([f"<span class='tag tag-{t.lower().replace(' ', '')}'>{t}</span> " for t, val in flags.items() if val and t != "Gerichtet"])
-                            if tags: 
+                        tags = "".join([f"<span class='tag tag-{t.lower().replace(' ', '')}'>{t}</span> " for t, val in flags.items() if val and t != "Gerichtet"])
+                            
+                            
+                            
+                            
+                             if tags: 
                                 st.markdown(f"""
                                     <div class='cat-card'>
                                         <div class='cat-number'>{kat_nr}</div>
