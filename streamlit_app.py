@@ -882,6 +882,7 @@ elif st.session_state.view == "BIS_Public":
         # Mapping für Spalten
         spalten_map = {"Show A": "SELECTION A", "Show B": "SELECTION B", "Show C": "SELECTION C"}
         show_col = show_selection.upper().replace(" ", "") # Entspricht den Spalten im DF: SHOWA, SHOWB, SHOWC (bitte prüfen)
+		
         # Wenn im DF die Spalte exakt "SHOW A" heißt, nimm das:
         richter_map = {"Show A": "RICHTER SHOW A", "Show B": "RICHTER SHOW B", "Show C": "RICHTER SHOW C"}
         ziel_spalte = spalten_map[show_selection]
@@ -894,7 +895,10 @@ elif st.session_state.view == "BIS_Public":
             ("Kitten 4-8 Male", [12], "M"), ("Kitten 4-8 Female", [12], "W")
         ]
         
-        judges = sorted([r for r in df_full[df_full[show_selection] == 'X'][r_col].unique() if str(r) != "nan"])
+        # DAS IST DIE KORREKTE VERSION:
+		# Wir müssen hier die 'ziel_spalte' verwenden (z.B. "SELECTION A"), 
+		# da diese die 'X' für die Teilnahme enthält.
+		judges = sorted([r for r in df_full[df_full[ziel_spalte].astype(str).str.upper() == 'X'][r_col].unique() if str(r) != "nan"])
 
         # --- CSS-LOGIK ---
         style_rules = ""
