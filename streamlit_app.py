@@ -1652,8 +1652,20 @@ elif st.session_state.view == "Nominated_Cats":
                 
             c_f3, c_f4 = st.columns(2)
             with c_f3:
-                show_klasse_optionen = ["Alle Show-Klassen"] + sorted([str(sk) for sk in df_nom_display['Show-Klasse'].unique()])
+                # Feste Reihenfolge: Erst Kitten, dann Junioren, dann Neuter, dann Adult
+                reihenfolge = [
+                    "Kitten 4-8 M", "Kitten 4-8 W", 
+                    "Junior 8-12 M", "Junior 8-12 W", 
+                    "Neuter M", "Neuter W",
+                    "Adult M", "Adult W"
+                ]
+                
+                # Nur die Klassen zur Auswahl anbieten, die auch in den Daten vorhanden sind
+                vorhandene_klassen = [k for k in reihenfolge if k in df_nom_display['Show-Klasse'].unique()]
+                
+                show_klasse_optionen = ["Alle Show-Klassen"] + vorhandene_klassen
                 wahl_show_klasse = st.selectbox("Nach Show-Klasse filtern:", show_klasse_optionen)
+
             with c_f4:
                 geschlecht_optionen = ["Alle Geschlechter"] + sorted([str(g) for g in df_nom_display['Geschlecht'].unique() if g != "-"])
                 wahl_geschlecht = st.selectbox("Nach Geschlecht filtern:", geschlecht_optionen)
