@@ -1638,21 +1638,18 @@ elif st.session_state.view == "Nominated_Cats":
                 })
             
             df_nom_display = pd.DataFrame(nominated_data)
-
-			# --- KONTROLLE: DUPLIKATE PRO SHOW ---
-            st.markdown("### 🛡️ Admin-Kontrolle")
-            
-            # Suche nach doppelten Katalog-Nummern in der aktuellen Show
+			
+			# --- ADMIN-KONTROLLZENTRUM ---
+            st.markdown("### 🛡️ Admin-Kontrollzentrum")
             dups = df_nom_display[df_nom_display.duplicated(subset=['Katalog-Nr.'], keep=False)]
-            
-            if not dups.empty:
-                st.error(f"❌ Achtung: {len(dups['Katalog-Nr.'].unique())} Katze(n) sind in dieser Show mehrfach nominiert!")
-                with st.expander("Details zu den Dubletten anzeigen"):
-                    st.dataframe(dups[['Katalog-Nr.', 'Rasse', 'Richter', 'Show-Klasse']], use_container_width=True, hide_index=True)
-            else:
-                st.success("✅ Alle Katalog-Nummern sind in dieser Show eindeutig.")
-            
-            st.divider()
+            richter_load = df_nom_display.groupby(['Richter', 'Kategorie']).size().reset_index(name='Anzahl')
+            overloaded = richter_load[richter_load['Anzahl'] > 8]
+            violation_groups = df_nom_display.groupby(['Richter', 'Kategorie', 'Show-Klasse']).filter(lambda x: len(x) > 1)
+
+            c1, c2, c3 = st.columns(3)
+            with c1: st.error(f"❌ Dubletten: {len(dups['Katalog-Nr.'].unique())}") if not dups.empty else st.success("✅ Katalog-Nr. ok")
+            with c2: st.warning(f"⚠️ Limit >8: {len(overloaded)}") if not overloaded.empty else st.success("✅ Richter-Limit ok")
+            with c3: st.error(f"❌ Klassen-Verstoß: {len(violation_groups['Richter'].unique())}") if not violation_groups.empty else st.success("✅ Klassen-Regel ok")
 
             
             # --- SEKTION: FILTER & SORTIERUNG ---
