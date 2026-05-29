@@ -1576,7 +1576,19 @@ elif st.session_state.view == "QR_Codes":
 # --- NEUER MENÜPUNKT: NOMINIERTE KATZEN (VOLLE FILTER- & SORTIERFUNKTION) ---
 elif st.session_state.view == "Nominated_Cats":
     display_header_with_logo("🏅 Nominierte Katzen (Admin-Zentrale)")
-    
+
+	# NEU: Hilfsfunktion für die Show-Klasse
+    def get_show_class(row):
+        kl = str(row.get('KLASSE_INTERNAL', row.get('AUSSTELLUNGSKLASSE', row.get('KLASSE', '')))).replace('.0', '')
+        geschlecht = str(row.get('GESCHLECHT', '')).upper()
+        # Mappings basierend auf deinen Anforderungen
+        if kl in ['1','3','5','7','9']: return f"Adult {geschlecht}"
+        if kl in ['2','4','6','8','10']: return f"Neuter {geschlecht}"
+        if kl == '11': return f"Junior 8-12 {geschlecht}"
+        if kl == '12': return f"Kitten 4-8 {geschlecht}"
+        return "Unbekannt"
+
+ 
     df_full = load_labels()
     
     if df_full is not None:
@@ -1620,6 +1632,7 @@ elif st.session_state.view == "Nominated_Cats":
                     "Geschlecht": row.get('GESCHLECHT', '-'),
                     "Kategorie": row.get('KATEGORIE', '-'),
                     "Klasse": klasse,
+					"Show-Klasse": get_show_class(row), # NEU: Spalte für Show-Klasse
                     "Richter": str(richter_name) if pd.notna(richter_name) and str(richter_name) != "nan" else "-",
                     "Show": show_wahl
                 })
@@ -1639,8 +1652,8 @@ elif st.session_state.view == "Nominated_Cats":
                 
             c_f3, c_f4 = st.columns(2)
             with c_f3:
-                klasse_optionen = ["Alle Klassen"] + sorted([str(kl) for kl in df_nom_display['Klasse'].unique() if kl != "-"])
-                wahl_klasse = st.selectbox("Nach Klasse filtern:", klasse_optionen)
+                show_klasse_optionen = ["Alle Show-Klassen"] + sorted([str(sk) for sk in df_nom_display['Show-Klasse'].unique()])
+                wahl_show_klasse = st.selectbox("Nach Show-Klasse filtern:", show_klasse_optionen)
             with c_f4:
                 geschlecht_optionen = ["Alle Geschlechter"] + sorted([str(g) for g in df_nom_display['Geschlecht'].unique() if g != "-"])
                 wahl_geschlecht = st.selectbox("Nach Geschlecht filtern:", geschlecht_optionen)
@@ -1662,8 +1675,7 @@ elif st.session_state.view == "Nominated_Cats":
                 df_nom_display = df_nom_display[df_nom_display['Richter'].astype(str).str.strip() == wahl_richter.strip()]
             if wahl_kategorie != "Alle Kategorien": 
                 df_nom_display = df_nom_display[df_nom_display['Kategorie'].astype(str).str.strip() == wahl_kategorie.strip()]
-            if wahl_klasse != "Alle Klassen": 
-                df_nom_display = df_nom_display[df_nom_display['Klasse'].astype(str).str.strip() == wahl_klasse.strip()]
+            if wahl_show_klasse != "Alle Show-Klassen": df_nom_display = df_nom_display[df_nom_display['Show-Klasse'] == wahl_show_klasse]
             if wahl_geschlecht != "Alle Geschlechter": 
                 df_nom_display = df_nom_display[df_nom_display['Geschlecht'].astype(str).str.strip() == wahl_geschlecht.strip()]
 
