@@ -1638,6 +1638,22 @@ elif st.session_state.view == "Nominated_Cats":
                 })
             
             df_nom_display = pd.DataFrame(nominated_data)
+
+			# --- KONTROLLE: DUPLIKATE PRO SHOW ---
+            st.markdown("### 🛡️ Admin-Kontrolle")
+            
+            # Suche nach doppelten Katalog-Nummern in der aktuellen Show
+            dups = df_nom_display[df_nom_display.duplicated(subset=['Katalog-Nr.'], keep=False)]
+            
+            if not dups.empty:
+                st.error(f"❌ Achtung: {len(dups['Katalog-Nr.'].unique())} Katze(n) sind in dieser Show mehrfach nominiert!")
+                with st.expander("Details zu den Dubletten anzeigen"):
+                    st.dataframe(dups[['Katalog-Nr.', 'Rasse', 'Richter', 'Show-Klasse']], use_container_width=True, hide_index=True)
+            else:
+                st.success("✅ Alle Katalog-Nummern sind in dieser Show eindeutig.")
+            
+            st.divider()
+
             
             # --- SEKTION: FILTER & SORTIERUNG ---
             st.markdown("### 🔍 Filter & Sortierung")
